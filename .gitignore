@@ -1,0 +1,5 @@
+# Ignore temporary packaging folder
+*.egg-info
+
+# IDE files
+.idea
