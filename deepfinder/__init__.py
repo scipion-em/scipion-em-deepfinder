@@ -26,8 +26,81 @@
 
 import pwem
 
+from .constants import *
+
 _logo = "icon.png"
-_references = ['you2019']
+_references = ['EMMANUEL2020']
 
 class Plugin(pwem.Plugin):
-    pass
+    _homeVar = DF_HOME
+    _pathVars = [DF_HOME]
+
+    @classmethod
+    def _defineVariables(cls):
+        cls._defineEmVar(DF_HOME, DF_FOLDER + '-' + DF_VERSION)
+        cls._defineVar(DF_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
+
+    @classmethod
+    def getEnviron(cls):
+        pass
+
+    @classmethod
+    def getDeepFinderEnvActivation(cls):
+        return cls.getVar(DF_ENV_ACTIVATION)
+
+    @classmethod
+    def runDeepFinder(cls, protocol, program, args, cwd=None):
+        program = cls.getDeepFinderProgram(program)
+        fullProgram = '%s %s && %s' % (cls.getCondaActivationCmd(), cls.getDeepFinderEnvActivation(), program)
+        protocol.runJob(fullProgram, args, env=cls.getEnviron(), cwd=cwd)
+
+    @classmethod
+    def getDeepFinderProgram(cls, program):
+        return os.path.join(cls.getHome(), 'bin', '%s' % program)
+
+    @classmethod
+    def getDependencies(cls):
+        neededProgs = []
+        condaActivationCmd = cls.getCondaActivationCmd()
+        if not condaActivationCmd:
+            neededProgs.append('conda')
+
+        return neededProgs
+
+    @classmethod
+    def defineBinaries(cls, env):
+        cls.addDeepFinderPackage(env, DF_VERSION)
+
+
+    @classmethod
+    def addDeepFinderPackage(cls, env, version):
+
+        DF_INSTALLED = 'deepfinder_%s_installed' % version
+        env_name = getDFEnvName(version)
+        # try to get CONDA activation command
+        installationCmd = cls.getCondaActivationCmd()
+
+        # Create the environment
+        installationCmd += 'conda create -y -n %s -c anaconda python=3.6 && ' \
+                           % env_name
+
+        # Activate new the environment
+        installationCmd += 'conda activate %s && ' % env_name
+
+        # Install downloaded code
+        installationCmd += 'pip install -r requirements.txt && '
+
+        # Flag installation finished
+        installationCmd += 'touch %s' % DF_INSTALLED
+
+        df_commands = [(installationCmd, DF_INSTALLED)]
+
+        env.addPackage(DF_FOLDER, version=version,
+                       url='https://gitlab.inria.fr/serpico/deep-finder/-/archive/master/deep-finder-master.tar.gz',
+                       commands=df_commands,
+                       buildDir='deep-finder-master',
+                       neededProgs=cls.getDependencies(),
+                       default=True)
+
+
+

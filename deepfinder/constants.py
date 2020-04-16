@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # **************************************************************************
 # *
 # * Authors:     you (you@yourinstitution.email)
@@ -24,20 +23,19 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-
 """
-@article{EMMANUEL2020,
-title = "3D ConvNet improves macromolecule localization in 3Dcellular cryo-electron tomograms",
-journal = "...",
-volume = "...",
-number = ".",
-pages = ".",
-year = ".",
-issn = ".",
-doi = ".",
-url = "http://www.url",
-author = "Emmanuel Moebel, Antonio Martinez, Damien Larivière, Julio Ortiz, Wolfgang Baumeister, et al..",
-keywords = ".",
-}
-
+This file contains constants related to scipion-em-dynamo protocols
 """
+
+import os
+from subprocess import check_output
+
+def getDFEnvName(version):
+    return "deepfinder-%s" % version
+
+DF_HOME = 'DF_HOME'
+DF_VERSION = '0.1'
+DF_FOLDER = 'deepfinder'
+DEFAULT_ENV_NAME = getDFEnvName(DF_VERSION)
+DEFAULT_ACTIVATION_CMD = 'conda activate ' + DEFAULT_ENV_NAME
+DF_ENV_ACTIVATION = 'DF_ENV_ACTIVATION'

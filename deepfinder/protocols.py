@@ -25,8 +25,10 @@
 # *
 # **************************************************************************
 from pyworkflow.object import Integer
-from pyworkflow.protocol import Protocol, params
+from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
+from tomo.protocols import ProtTomoPicking
+from deepfinder import Plugin
 
 """
 Describe your python module here:
@@ -100,3 +102,52 @@ class DeepFinderPrefixHelloWorld(Protocol):
                                " In total, %s messages has been printed."
                                % (self.previousCount, self.count))
         return methods
+
+class DeepFinderAnnotations(ProtTomoPicking):
+    """TODO"""
+
+    _label = 'annotations'
+
+    # --------------------------- DEFINE param functions ----------------------
+    def _defineParams(self, form):
+        ProtTomoPicking._defineParams(self, form)
+
+        form.addParam('boxSize', IntParam, label="Box Size")
+
+    # --------------------------- INSERT steps functions ----------------------
+    def _insertAllSteps(self):
+
+        # Launch Boxing GUI
+        self._insertFunctionStep('launchAnnotationStep')
+        self._insertFunctionStep('createOutputStep')
+
+    # --------------------------- STEPS functions -----------------------------
+    def launchAnnotationStep(self):
+        Plugin.runDeepFinder(self, 'generate_target', '')
+
+
+    def createOutputStep(self):
+        pass
+
+    # --------------------------- DEFINE info functions ----------------------
+    def getMethods(self, output):
+        msg = 'User picked %d particles ' % output.getSize()
+        msg += 'with a particle size of %s.' % output.getBoxSize()
+        return msg
+
+    def _methods(self):
+        methodsMsgs = []
+        if self.inputTomograms is None:
+            return ['Input tomogram not available yet.']
+
+        methodsMsgs.append("Input tomograms imported of dims %s." % (
+            str(self.inputTomograms.get().getDim())))
+
+        if self.getOutputsSize() >= 1:
+            for key, output in self.iterOutputAttributes():
+                msg = self.getMethods(output)
+                methodsMsgs.append("%s: %s" % (self.getObjectTag(output), msg))
+        else:
+            methodsMsgs.append(Message.TEXT_NO_OUTPUT_CO)
+
+        return methodsMsgs
