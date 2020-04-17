@@ -105,7 +105,7 @@ class DeepFinderPrefixHelloWorld(Protocol):
 
 
 class DeepFinderAnnotations(ProtTomoPicking):
-    """TODO"""
+    """TODO This go the the help"""
 
     _label = 'annotations'
 
@@ -113,7 +113,6 @@ class DeepFinderAnnotations(ProtTomoPicking):
     def _defineParams(self, form):
         ProtTomoPicking._defineParams(self, form)
 
-        form.addParam('boxSize', IntParam, label="Box Size")
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -124,46 +123,48 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
     # --------------------------- STEPS functions -----------------------------
     def launchAnnotationStep(self):
-        # TODO Prepare input for generate_target
-        # Launch generate target
-        Plugin.runDeepFinder(self, 'generate_target', '')
+
+        # TODO Prepare input for annotation GUI
+        for tomo in self.inputTomograms.get().iterItems():
+
+            # Launch annotation GUI passing the tomogram file name
+            Plugin.runDeepFinder(self, 'annotation', tomo.getFileName())
+
+
+
 
     def createOutputStep(self):
         # TODO Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
 
-         #    coord3DSetDict = {}
-         #    setTomograms = self.inputTomograms.get()
-         #    suffix = self._getOutputSuffix(SetOfCoordinates3D)
-         #    coord3DSet = self._createSetOfCoordinates3D(setTomograms, suffix)
-         #    coord3DSet.setName("tomoCoord")
-         #    coord3DSet.setPrecedents(setTomograms)
-         #    coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
-         #    coord3DSet.setBoxSize(self.boxSize.get())
-         #    for tomo in setTomograms.iterItems():
-         #        outPoints = pwutils.join(self._getExtraPath(), pwutils.removeBaseExt(tomo.getFileName()) + '.txt')
-         #        outAngles = pwutils.join(self._getExtraPath(),
-         #                                 'angles_' + pwutils.removeBaseExt(tomo.getFileName()) + '.txt')
-         #        if not os.path.isfile(outPoints):
-         #            continue
-         #
-         #        # Populate Set of 3D Coordinates with 3D Coordinates
-         #        points = np.loadtxt(outPoints, delimiter=' ')
-         #        angles = np.deg2rad(np.loadtxt(outAngles, delimiter=' '))
-         #        for idx in range(len(points)):
-         #            coord = Coordinate3D()
-         #            coord.setPosition(points[idx, 0], points[idx, 1], points[idx, 2])
-         #            coord.euler2Matrix(angles[idx, 0], angles[idx, 1], angles[idx, 2])
-         #            coord.setVolume(tomo)
-         #            coord3DSet.append(coord)
-         #
-         #        coord3DSetDict['00'] = coord3DSet
-         #
-         #    name = self.OUTPUT_PREFIX + suffix
-         #    args = {}
-         #    args[name] = coord3DSet
-         #    self._defineOutputs(**args)
-         #    self._defineSourceRelation(setTomograms, coord3DSet)
-         #    self._updateOutputSet(name, coord3DSet, state=coord3DSet.STREAM_CLOSED)
+        # Probably we need 1 SetOfCoordinated3D per "deepfinder class"
+
+        # setTomograms = self.inputTomograms.get()
+        #
+        # # New set of coordinates 3D
+        # coord3DSet = self._createSetOfCoordinates3D(setTomograms)
+        # coord3DSet.setName("tomoCoord")
+        # coord3DSet.setPrecedents(setTomograms)
+        # coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
+        # coord3DSet.setBoxSize(self.boxSize.get())
+        #
+        #  # Or maybe it is better to iterate over the deppfinder xml output file (annotiation GUI generates)
+        # for tomo in setTomograms.iterItems():
+        #
+        #     # Populate Set of 3D Coordinates with 3D Coordinates
+        #     # Converting due to convention differences
+        #     points = np.loadtxt(outPoints, delimiter=' ')
+        #     angles = np.deg2rad(np.loadtxt(outAngles, delimiter=' '))
+        #     x, y, z, angles =  getXmlAnnotations()
+        #
+        #     coord = Coordinate3D()
+        #     coord.setPosition(x,y,z)
+        #     coord.euler2Matrix(angles[0], angles[1], angles[2])
+        #     coord.setVolume(tomo)
+        #     coord3DSet.append(coord)
+        #
+        #
+        # self._defineOutputs(outputCoordinates3D=coord3DSet)
+        # self._defineSourceRelation(setTomograms, coord3DSet)
 
         pass
 

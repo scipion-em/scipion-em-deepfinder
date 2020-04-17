@@ -35,7 +35,7 @@ setup(
     packages=find_packages(),
     install_requires=[requirements],
     package_data={
-       'myplugin': ['icon.png', 'protocols.conf'],
+       'deepfinder': ['icon.png', 'protocols.conf'],
     },
     entry_points={
         'pyworkflow.plugin': 'deepfinder = deepfinder'

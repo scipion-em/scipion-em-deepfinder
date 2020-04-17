@@ -16,3 +16,5 @@ Using the command line:
 
     scipion3 installp -p local/path/to/scipion-em-deepfinder --devel
 
+
+CONDA_ACTIVATION_CMD = . /extra/miniconda3/etc/profile.d/conda.sh
