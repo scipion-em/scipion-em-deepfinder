@@ -16,5 +16,16 @@ Using the command line:
 
     scipion3 installp -p local/path/to/scipion-em-deepfinder --devel
 
+Plugin integration
+------------------
 
-CONDA_ACTIVATION_CMD = . /extra/miniconda3/etc/profile.d/conda.sh
+The following steps presuppose that you have Anaconda or Miniconda installed on your computer.
+In ``~/.config/scipion/scipion.conf`` (Option View > Show Hidden Files must be enabled) set
+**CONDA_ACTIVATION_CMD** variable in the Packages section.
+
+For example:
+
+.. code-block::
+
+    CONDA_ACTIVATION_CMD = . ~/anaconda3/etc/profile.d/conda.sh
+
