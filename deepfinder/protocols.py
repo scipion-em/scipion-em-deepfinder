@@ -128,7 +128,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
         for tomo in self.inputTomograms.get().iterItems():
 
             # Launch annotation GUI passing the tomogram file name
-            Plugin.runDeepFinder(self, 'annotation', tomo.getFileName())
+            Plugin.runDeepFinder(self, 'annotation', '-t '+tomo.getFileName())
 
 
 

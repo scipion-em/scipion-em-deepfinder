@@ -29,8 +29,8 @@ setup(
     description='Deepfinder plugin for scipion.',  # Required
     long_description=long_description,  # Optional
     url='https://github.com/scipion-em/scipion-em-deepfinder',  # Optional
-    author='you',  # Optional
-    author_email='you@yourinstitution.email',  # Optional
+    author='E. Moebel',  # Optional
+    author_email='emmanuel.moebel@inria.fr',  # Optional
     keywords='scipion cryoem imageprocessing scipion-3.0',  # Optional
     packages=find_packages(),
     install_requires=[requirements],
