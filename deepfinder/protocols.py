@@ -24,7 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from pyworkflow.object import Integer
+from pyworkflow.object import Integer, Set
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
 from tomo.protocols import ProtTomoPicking
@@ -137,7 +137,6 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
             # Launch annotation GUI passing the tomogram file name
             deepfinder_args = '-t ' + tomo.getFileName()
-            #deepfinder_args += ' -o ' + os.path.abspath( os.path.join(self._getExtraPath(), 'objlist_annotation.xml') )
             deepfinder_args += ' -o ' + os.path.abspath(os.path.join(self._getExtraPath(), fname_objl))
             Plugin.runDeepFinder(self, 'annotation', deepfinder_args)
 
@@ -188,32 +187,81 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
         lbl_list = cv.objl_get_labels(objl)  # get unique class labels
 
-        # Next, create one SetOfCoordinates3D per class, and store them into a list:
-        coord3DSetList = []
+        # # Next, create one SetOfCoordinates3D per class, and store them into a list:
+        # coord3DSetList = []
+        # for lbl in lbl_list:
+        #     coord3DSet = self._createSetOfCoordinates3D(setTomograms)
+        #     coord3DSet.setName('Class '+str(lbl))
+        #     coord3DSet.setPrecedents(setTomograms)
+        #     coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
+        #     #coord3DSet.setBoxSize(self.boxSize.get()) # DeepFinderAnnotations obj has no attribute boxSize
+        #     #coord3DSet.setStreamState(Set.STREAM_OPEN)
+        #     coord3DSetList.append(coord3DSet)
+        #
+        # # Iterate over all object lists (1 per tomo) and store coordinates in SetOfCoordinates3D (1 per class)
+        # for tomo in setTomograms.iterItems():
+        #     # Get objl filename:
+        #     fname_tomo = os.path.splitext(tomo.getFileName())
+        #     fname_tomo = os.path.basename(fname_tomo[0])
+        #     fname_objl = 'objl_annot_' + fname_tomo + '.xml'
+        #
+        #     # Read objl:
+        #     objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
+        #
+        #     for l in range(len(lbl_list)):
+        #         lbl = lbl_list[l]
+        #         objl_class = cv.objl_get_class(objl_tomo, lbl)
+        #         for idx in range(len(objl_class)):
+        #             x = objl_class[idx]['x']
+        #             y = objl_class[idx]['y']
+        #             z = objl_class[idx]['z']
+        #
+        #             coord = Coordinate3D()
+        #             coord.setPosition(x, y, z)
+        #             coord.setVolume(tomo)
+        #             coord3DSetList[l].append(coord)
+        #
+        #
+        #
+        # # Method 1:
+        # #for coord3DSet in coord3DSetList:
+        # #    self._defineOutputs(outputCoordinates3D=coord3DSet)
+        # #    self._defineSourceRelation(setTomograms, coord3DSet)
+        #
+        # # Method 2:
+        # coord3DSetDict = {}
+        # for l in range(len(lbl_list)):
+        #     lbl = lbl_list[l]
+        #     coord3DSetDict['outputCoordinates3Dclass'+str(lbl)] = coord3DSetList[l]
+        #
+        # self._defineOutputs(**coord3DSetDict)
+        # #self._defineSourceRelation(setTomograms, coord3DSetDict)
+        #
+        # # Method 3:
+        # # for l in range(len(lbl_list)):
+        # #     lbl = lbl_list[l]
+        # #     name = 'outputCoordinates3Dclass'+str(lbl)
+        # #     args = {}
+        # #     args[name] = coord3DSetList[l]
+        # #     coord3DSetList[l].setStreamState(Set.STREAM_OPEN)
+        # #     self._defineOutputs(**args)
+        # #     self._defineSourceRelation(setTomograms, coord3DSetList[l])
+
+
         for lbl in lbl_list:
             coord3DSet = self._createSetOfCoordinates3D(setTomograms)
             coord3DSet.setName('Class '+str(lbl))
             coord3DSet.setPrecedents(setTomograms)
             coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
-            #coord3DSet.setBoxSize(self.boxSize.get()) # DeepFinderAnnotations obj has no attribute boxSize
-            coord3DSetList.append(coord3DSet)
 
-        #print('Label list: '+str(lbl_list))
-        #print('coord3DSetList len: '+str(len(coord3DSetList)))
-        #print('coord3DSetList[0] type: '+str(type(coord3DSetList[0])))
+            for tomo in setTomograms.iterItems():
+                # Get objl filename:
+                fname_tomo = os.path.splitext(tomo.getFileName())
+                fname_tomo = os.path.basename(fname_tomo[0])
+                fname_objl = 'objl_annot_' + fname_tomo + '.xml'
 
-        # Iterate over all object lists (1 per tomo) and store coordinates in SetOfCoordinates3D (1 per class)
-        for tomo in setTomograms.iterItems():
-            # Get objl filename:
-            fname_tomo = os.path.splitext(tomo.getFileName())
-            fname_tomo = os.path.basename(fname_tomo[0])
-            fname_objl = 'objl_annot_' + fname_tomo + '.xml'
-
-            # Read objl:
-            objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
-
-            for l in range(len(lbl_list)):
-                lbl = lbl_list[l]
+                # Read objl:
+                objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
                 objl_class = cv.objl_get_class(objl_tomo, lbl)
                 for idx in range(len(objl_class)):
                     x = objl_class[idx]['x']
@@ -223,24 +271,15 @@ class DeepFinderAnnotations(ProtTomoPicking):
                     coord = Coordinate3D()
                     coord.setPosition(x, y, z)
                     coord.setVolume(tomo)
-                    coord3DSetList[l].append(coord)
+                    coord3DSet.append(coord)
 
+            name = 'outputCoordinates3Dclass'+str(lbl)
+            args = {}
+            args[name] = coord3DSet
+            coord3DSet.setStreamState(Set.STREAM_OPEN)
+            self._defineOutputs(**args)
+            self._defineSourceRelation(setTomograms, coord3DSet)
 
-        #print("FLAG")
-        # Link the SetOfCoordinates3D(s) to output:
-
-        # Method 1:
-        #for coord3DSet in coord3DSetList:
-        #    self._defineOutputs(outputCoordinates3D=coord3DSet)
-        #    self._defineSourceRelation(setTomograms, coord3DSet)
-
-        # Method 2:
-        coord3DSetDict = {}
-        for l in range(len(lbl_list)):
-            lbl = lbl_list[l]
-            coord3DSetDict['outputCoordinates3Dclass'+str(lbl)] =  coord3DSetList[l]
-
-        self._defineOutputs(**coord3DSetDict)
 
         pass
 
