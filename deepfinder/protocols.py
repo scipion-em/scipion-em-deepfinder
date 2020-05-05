@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # **************************************************************************
 # *
-# * Authors:     you (you@yourinstitution.email)
+# * Authors: Emmanuel Moebel (emmanuel.moebel@inria.fr)
 # *
-# * your institution
+# * Inria - Centre de Rennes Bretagne Atlantique, France
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,8 @@ from pyworkflow.object import Integer, Set
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
 from tomo.protocols import ProtTomoPicking
-from tomo.objects import Coordinate3D
+from tomo.objects import Coordinate3D, Tomogram
+
 from deepfinder import Plugin
 import deepfinder.convert as cv
 
@@ -109,7 +110,7 @@ class DeepFinderPrefixHelloWorld(Protocol):
 
 
 class DeepFinderAnnotations(ProtTomoPicking):
-    """TODO This go the the help"""
+    """This protocol allows you to annotate macromolecules in your tomograms, using a visual tool."""
 
     _label = 'annotations'
 
@@ -144,34 +145,8 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
 
     def createOutputStep(self):
-        # TODO Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
-
-        # Probably we need 1 SetOfCoordinated3D per "deepfinder class"
-
+        # Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
         setTomograms = self.inputTomograms.get()
-        #
-        # # New set of coordinates 3D
-        # coord3DSet = self._createSetOfCoordinates3D(setTomograms)
-        # coord3DSet.setName("tomoCoord")
-        # coord3DSet.setPrecedents(setTomograms)
-        # coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
-        # coord3DSet.setBoxSize(self.boxSize.get())
-        #
-
-        # # Populate Set of 3D Coordinates with 3D Coordinates
-        # # Converting due to convention differences
-        # points = np.loadtxt(outPoints, delimiter=' ')
-        # angles = np.deg2rad(np.loadtxt(outAngles, delimiter=' '))
-        # x, y, z, angles = getXmlAnnotations()
-        #
-        # coord = Coordinate3D()
-        # coord.setPosition(x, y, z)
-        # # coord.euler2Matrix(angles[0], angles[1], angles[2])
-        # coord.setVolume(tomo)
-        # coord3DSet.append(coord)
-
-
-
 
         # First, determine the classes that have been annotated (check in all object lists):
         objl = []
@@ -187,67 +162,10 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
         lbl_list = cv.objl_get_labels(objl)  # get unique class labels
 
-        # # Next, create one SetOfCoordinates3D per class, and store them into a list:
-        # coord3DSetList = []
-        # for lbl in lbl_list:
-        #     coord3DSet = self._createSetOfCoordinates3D(setTomograms)
-        #     coord3DSet.setName('Class '+str(lbl))
-        #     coord3DSet.setPrecedents(setTomograms)
-        #     coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
-        #     #coord3DSet.setBoxSize(self.boxSize.get()) # DeepFinderAnnotations obj has no attribute boxSize
-        #     #coord3DSet.setStreamState(Set.STREAM_OPEN)
-        #     coord3DSetList.append(coord3DSet)
-        #
-        # # Iterate over all object lists (1 per tomo) and store coordinates in SetOfCoordinates3D (1 per class)
-        # for tomo in setTomograms.iterItems():
-        #     # Get objl filename:
-        #     fname_tomo = os.path.splitext(tomo.getFileName())
-        #     fname_tomo = os.path.basename(fname_tomo[0])
-        #     fname_objl = 'objl_annot_' + fname_tomo + '.xml'
-        #
-        #     # Read objl:
-        #     objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
-        #
-        #     for l in range(len(lbl_list)):
-        #         lbl = lbl_list[l]
-        #         objl_class = cv.objl_get_class(objl_tomo, lbl)
-        #         for idx in range(len(objl_class)):
-        #             x = objl_class[idx]['x']
-        #             y = objl_class[idx]['y']
-        #             z = objl_class[idx]['z']
-        #
-        #             coord = Coordinate3D()
-        #             coord.setPosition(x, y, z)
-        #             coord.setVolume(tomo)
-        #             coord3DSetList[l].append(coord)
-        #
-        #
-        #
-        # # Method 1:
-        # #for coord3DSet in coord3DSetList:
-        # #    self._defineOutputs(outputCoordinates3D=coord3DSet)
-        # #    self._defineSourceRelation(setTomograms, coord3DSet)
-        #
-        # # Method 2:
-        # coord3DSetDict = {}
-        # for l in range(len(lbl_list)):
-        #     lbl = lbl_list[l]
-        #     coord3DSetDict['outputCoordinates3Dclass'+str(lbl)] = coord3DSetList[l]
-        #
-        # self._defineOutputs(**coord3DSetDict)
-        # #self._defineSourceRelation(setTomograms, coord3DSetDict)
-        #
-        # # Method 3:
-        # # for l in range(len(lbl_list)):
-        # #     lbl = lbl_list[l]
-        # #     name = 'outputCoordinates3Dclass'+str(lbl)
-        # #     args = {}
-        # #     args[name] = coord3DSetList[l]
-        # #     coord3DSetList[l].setStreamState(Set.STREAM_OPEN)
-        # #     self._defineOutputs(**args)
-        # #     self._defineSourceRelation(setTomograms, coord3DSetList[l])
-
-
+        # For each class, iterate over all object lists (1 per tomo) and store coordinates
+        # in SetOfCoordinates3D (1 per class)
+        # Remark: only 1 setOfCoordinates3D can exist at a time, else:
+        # "Protocol failed: Cannot operate on a closed database."
         for lbl in lbl_list:
             coord3DSet = self._createSetOfCoordinates3D(setTomograms)
             coord3DSet.setName('Class '+str(lbl))
@@ -273,6 +191,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
                     coord.setVolume(tomo)
                     coord3DSet.append(coord)
 
+            # Link to output:
             name = 'outputCoordinates3Dclass'+str(lbl)
             args = {}
             args[name] = coord3DSet
@@ -280,13 +199,11 @@ class DeepFinderAnnotations(ProtTomoPicking):
             self._defineOutputs(**args)
             self._defineSourceRelation(setTomograms, coord3DSet)
 
-
         pass
 
     # --------------------------- DEFINE info functions ----------------------
     def getMethods(self, output):
         msg = 'User picked %d particles ' % output.getSize()
-        msg += 'with a particle size of %s.' % output.getBoxSize()
         return msg
 
     def _methods(self):
@@ -305,3 +222,189 @@ class DeepFinderAnnotations(ProtTomoPicking):
             methodsMsgs.append(Message.TEXT_NO_OUTPUT_CO)
 
         return methodsMsgs
+
+
+class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
+    """ This protocol generates segmentation maps from annotations. These segmentation maps will be used as targets
+     to train DeepFinder """
+    _label = 'generate sphere target'
+
+    # -------------------------- DEFINE param functions ----------------------
+    def _defineParams(self, form):
+        """ Define the input parameters that will be used.
+        Params:
+            form: this is the form to be populated with sections and params.
+        """
+        # You need a params to belong to a section:
+        form.addSection(label=Message.LABEL_INPUT)
+        #form.addParam('strategy', params.EnumParam,
+        #              default='spheres',
+        #              label='Strategy', important=True,
+        #              help='Target generation strategy',
+        #              EnumParam=['spheres', 'shapes'])
+        form.addParam('inputCoordinates', params.MultiPointerParam, label="Input coordinates",
+                      pointerClass='SetOfCoordinates3D', help='Select coordinate sets for each class.')
+
+        form.addParam('initialVolume', PointerParam,
+                      pointerClass='Tomogram',
+                      label="Target initialization", important=True, allowsNull=True,
+                      help='For integrating non-macromolecule classes (e.g. membranes).')
+
+        form.addParam('tomoSize', params.StringParam,
+                      default='sizeX,sizeY,sizeZ',
+                      label='Tomogram size', important=True,
+                      help='Tomogram size in voxels. Should be separated by coma as follows: sizeX,sizeY,sizeZ')
+
+        #form.addParam('classLabels', params.StringParam,
+        #              default='1,2,...,N',
+        #              label='Class labels', important=True,
+        #              help='Class labels. Should be separated by coma as follows: Rclass1,Rclass2,...')
+
+        form.addParam('sphereRadii', params.StringParam,
+                      default='5,6,...,3',
+                      label='Sphere radii', important=True,
+                      help='Sphere radius per class. Should be separated by coma as follows: Rclass1,Rclass2,...')
+
+    # --------------------------- STEPS functions ------------------------------
+    def _insertAllSteps(self):
+        # Insert processing steps
+        self._insertFunctionStep('launchTargetGenerationStep')
+        self._insertFunctionStep('createOutputStep')
+
+    def launchTargetGenerationStep(self):
+        # First, convert the input setOfCoordinates3D to objl, and save objl in tmp folder:
+        l = 1 # one class/setOfCoordinate3D. Class labels are reassigned here, and may not correspond to the label from annotation step.
+        objl = []
+        for pointer in self.inputCoordinates:
+            coord3DSet = pointer.get()
+            for coord in coord3DSet.iterItems():
+                x = coord.getX()
+                y = coord.getY()
+                z = coord.getZ()
+                lbl = l
+                cv.objl_add(objl, label=lbl, coord=[z,y,x])
+            l+=1
+        fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), 'objl.xml'))
+        cv.objl_write(objl, fname_objl)
+
+        # Next, prepare and save parameter file for DeepFinder
+        params = cv.ParamsGenTarget()
+        params.path_objl = fname_objl
+
+        if self.initialVolume.get()!=None:
+            params.path_initial_vol = self.initialVolume.get().getFileName()
+
+        tsize_string = self.tomoSize.get()
+        sizeX = tsize_string.split(',')[0]
+        sizeY = tsize_string.split(',')[1]
+        sizeZ = tsize_string.split(',')[2]
+        params.tomo_size = (sizeZ, sizeY, sizeX)
+
+        params.strategy = 'spheres'
+
+        radius_list_string = self.sphereRadii.get()
+        radius_list = []
+        for r in radius_list_string.split(','):radius_list.append(int(r))
+        params.radius_list = radius_list
+
+        params.path_target = os.path.abspath(os.path.join(self._getExtraPath(), 'target.mrc'))
+
+        fname_params = os.path.abspath(os.path.join(self._getExtraPath(), 'params_target_generation.xml'))
+        params.write(fname_params)
+
+        # Launch DeepFinder target generation:
+        deepfinder_args = '-p ' + fname_params
+        Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
+
+    def createOutputStep(self):
+        # Import generated target from tmp folder and link to output:
+        target = Tomogram()
+        fname = os.path.abspath(os.path.join(self._getExtraPath(), 'target.mrc'))
+        target.setFileName(fname)
+        self._defineOutputs(outputTomogram=target)
+        pass
+
+    # --------------------------- INFO functions -----------------------------------
+    def _summary(self):
+        """ Summarize what the protocol has done"""
+        summary = []
+
+        if self.isFinished():
+
+            summary.append("This protocol has printed *%s* %i times." % (self.message, self.times))
+        return summary
+
+    def _methods(self):
+        methods = []
+
+        if self.isFinished():
+            methods.append("%s has been printed in this run %i times." % (self.message, self.times))
+            if self.previousCount.hasPointer():
+                methods.append("Accumulated count from previous runs were %i."
+                               " In total, %s messages has been printed."
+                               % (self.previousCount, self.count))
+        return methods
+
+
+
+class DeepFinderDisplay(Protocol):
+    """ This protocol allows you to explore tomograms or segmentation maps with ortho-slices. The seegmentation map
+    can be superimposed to the tomogram. Useful for visualising your results."""
+    _label = 'display volume'
+
+    # -------------------------- DEFINE param functions ----------------------
+    def _defineParams(self, form):
+        """ Define the input parameters that will be used.
+        Params:
+            form: this is the form to be populated with sections and params.
+        """
+        # You need a params to belong to a section:
+        form.addSection(label=Message.LABEL_INPUT)
+        form.addParam('tomogram', PointerParam,
+                      pointerClass='Tomogram',
+                      label="Tomogram", important=True, allowsNull=True,
+                      help='Select tomogram to display.')
+
+        form.addParam('segmentation', PointerParam,
+                      pointerClass='Tomogram',
+                      label="Segmentation map", important=True, allowsNull=True,
+                      help='Select segmentation map to display.')
+
+    # --------------------------- STEPS functions ------------------------------
+    def _insertAllSteps(self):
+        # Insert processing steps
+        self._insertFunctionStep('displayStep')
+
+    def displayStep(self):
+        deepfinder_args = ''
+        if self.tomogram.get() != None:
+            fname = self.tomogram.get().getFileName()
+            deepfinder_args += '-t ' + fname
+        if self.segmentation.get() != None:
+            fname = self.segmentation.get().getFileName()
+            deepfinder_args += ' -l ' + fname
+
+        # Launch display GUI:
+        Plugin.runDeepFinder(self, 'display', deepfinder_args)
+
+
+    # --------------------------- INFO functions -----------------------------------
+    def _summary(self):
+        """ Summarize what the protocol has done"""
+        summary = []
+
+        if self.isFinished():
+
+            summary.append("This protocol has printed *%s* %i times." % (self.message, self.times))
+        return summary
+
+    def _methods(self):
+        methods = []
+
+        if self.isFinished():
+            methods.append("%s has been printed in this run %i times." % (self.message, self.times))
+            if self.previousCount.hasPointer():
+                methods.append("Accumulated count from previous runs were %i."
+                               " In total, %s messages has been printed."
+                               % (self.previousCount, self.count))
+        return methods
