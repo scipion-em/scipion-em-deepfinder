@@ -33,11 +33,14 @@ class DeepFinderSegmentation(Volume):
     """Class for storing tomogram segmentation maps. A segmentation should always be linked to its origin tomogram."""
     def __init__(self, **kwargs):
         Volume.__init__(self, **kwargs)
+        self._acquisition = None
+        self._tsId = pwobj.String(kwargs.get('tsId', None))
+
         self._tomoPointer = pwobj.Pointer(objDoStore=False)
         self._tomoId = pwobj.Integer()
         self._tomoName = pwobj.String()
 
-    def getTomogram(self):
+    def getTomogram(self): # does not work, similar problem to Coordinate3D.getVolume
         return self._tomoPointer.get()
 
     def setTomogram(self, tomo):
@@ -46,6 +49,12 @@ class DeepFinderSegmentation(Volume):
         self._tomoName.set(tomo.getFileName())
 
         self.setSamplingRate(tomo.getSamplingRate())
+
+    def setTomoName(self, tomoName):
+        self._tomoName.set(tomoName)
+
+    def getTomoName(self):
+        return self._tomoName.get()
 
 
 # class SetOfDeepFinderSegmentations(SetOfVolumes):

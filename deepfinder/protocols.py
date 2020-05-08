@@ -32,6 +32,7 @@ from tomo.objects import Coordinate3D, Tomogram
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
+from deepfinder.objects import DeepFinderSegmentation
 
 import os
 
@@ -189,6 +190,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
                     coord = Coordinate3D()
                     coord.setPosition(x, y, z)
                     coord.setVolume(tomo)
+                    coord.setVolName(tomo.getFileName())
                     coord3DSet.append(coord)
 
             # Link to output:
@@ -237,11 +239,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
         """
         # You need a params to belong to a section:
         form.addSection(label=Message.LABEL_INPUT)
-        #form.addParam('strategy', params.EnumParam,
-        #              default='spheres',
-        #              label='Strategy', important=True,
-        #              help='Target generation strategy',
-        #              EnumParam=['spheres', 'shapes'])
+
         form.addParam('inputCoordinates', params.MultiPointerParam, label="Input coordinates",
                       pointerClass='SetOfCoordinates3D', help='Select coordinate sets for each class.')
 
@@ -249,16 +247,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
                       pointerClass='Tomogram',
                       label="Target initialization", important=True, allowsNull=True,
                       help='For integrating non-macromolecule classes (e.g. membranes).')
-
-        form.addParam('tomoSize', params.StringParam,
-                      default='sizeX,sizeY,sizeZ',
-                      label='Tomogram size', important=True,
-                      help='Tomogram size in voxels. Should be separated by coma as follows: sizeX,sizeY,sizeZ')
-
-        #form.addParam('classLabels', params.StringParam,
-        #              default='1,2,...,N',
-        #              label='Class labels', important=True,
-        #              help='Class labels. Should be separated by coma as follows: Rclass1,Rclass2,...')
 
         form.addParam('sphereRadii', params.StringParam,
                       default='5,6,...,3',
@@ -272,17 +260,26 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
         self._insertFunctionStep('createOutputStep')
 
     def launchTargetGenerationStep(self):
+        # Disclaimer: for now this method supposes that coord3DSets contain coords from 1 single tomogram.
+        # TODO: adapt to multi-tomogram
+        # check out setOfCoord3D.iterCoordinates(vol): Iterate over the coordinates associated with a tomogram.
+        # getPrecedents(): Returns the SetOfTomograms or Tilt Series associated with this SetOfCoordinates
+
         # First, convert the input setOfCoordinates3D to objl, and save objl in tmp folder:
         l = 1 # one class/setOfCoordinate3D. Class labels are reassigned here, and may not correspond to the label from annotation step.
         objl = []
         for pointer in self.inputCoordinates:
             coord3DSet = pointer.get()
+            print('-----------------------')
+            print(coord3DSet.getSummary())
+            print('-----------------------')
             for coord in coord3DSet.iterItems():
                 x = coord.getX()
                 y = coord.getY()
                 z = coord.getZ()
                 lbl = l
                 cv.objl_add(objl, label=lbl, coord=[z,y,x])
+                print('x='+str(x) + ', y=' + str(y) + ', z='+str(z)+', lbl='+str(lbl))
             l+=1
         fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), 'objl.xml'))
         cv.objl_write(objl, fname_objl)
@@ -291,24 +288,32 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
         params = cv.ParamsGenTarget()
         params.path_objl = fname_objl
 
+        # Set optional volume for target initialization:
         if self.initialVolume.get()!=None:
             params.path_initial_vol = self.initialVolume.get().getFileName()
 
-        tsize_string = self.tomoSize.get()
-        sizeX = tsize_string.split(',')[0]
-        sizeY = tsize_string.split(',')[1]
-        sizeZ = tsize_string.split(',')[2]
-        params.tomo_size = (sizeZ, sizeY, sizeX)
+        # Set tomogram size:
+        coord = self.inputCoordinates[0].get().getFirstItem() # take 1st element of 1st setOfCoord3D
+        #dimX, dimY, dimZ = coord.getVolume().getDim() # getVolume does not work. So I have to proceed as follows:
+        tomo = Tomogram()
+        tomo.setFileName(coord.getVolName())
+        dimX, dimY, dimZ = tomo.getDim()
+        params.tomo_size = (dimZ, dimY, dimX)
 
+        # Set strategy:
         params.strategy = 'spheres'
 
+        # Set radius list:
         radius_list_string = self.sphereRadii.get()
         radius_list = []
         for r in radius_list_string.split(','):radius_list.append(int(r))
         params.radius_list = radius_list
+        print('RADIUS LIST : '+str(radius_list))
 
+        # Set path to where write the generated target:
         params.path_target = os.path.abspath(os.path.join(self._getExtraPath(), 'target.mrc'))
 
+        # Save the parameter file:
         fname_params = os.path.abspath(os.path.join(self._getExtraPath(), 'params_target_generation.xml'))
         params.write(fname_params)
 
@@ -317,10 +322,19 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
         Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
     def createOutputStep(self):
-        # Import generated target from tmp folder and link to output:
-        target = Tomogram()
+        # Import generated target from tmp folder and and store into segmentation object:
+        target = DeepFinderSegmentation() #Tomogram()
+
         fname = os.path.abspath(os.path.join(self._getExtraPath(), 'target.mrc'))
         target.setFileName(fname)
+
+        # Link to origin tomogram:
+        coord = self.inputCoordinates[0].get().getFirstItem()  # take 1st element of 1st setOfCoord3D
+        #tomo = coord.getVolume() # getVolume does not work so I have to proceed as follows
+        #target.setTomogram(tomo)
+        target.setTomoName(coord.getVolName)
+
+        # Link to output:
         self._defineOutputs(outputTomogram=target)
         pass
 
@@ -366,7 +380,7 @@ class DeepFinderDisplay(Protocol):
                       help='Select tomogram to display.')
 
         form.addParam('segmentation', PointerParam,
-                      pointerClass='Tomogram',
+                      pointerClass='DeepFinderSegmentation',
                       label="Segmentation map", important=True, allowsNull=True,
                       help='Select segmentation map to display.')
 
