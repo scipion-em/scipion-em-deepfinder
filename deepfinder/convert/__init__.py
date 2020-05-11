@@ -183,3 +183,74 @@ class ParamsGenTarget():
 
         tree = ET.ElementTree(root)
         tree.write(filename)
+
+
+class ParamsTrain():
+    def __init__(self):
+        self.path_out = str()
+        self.path_tomo = [str()]
+        self.path_target = [str()]
+        self.path_objl_train = str()
+        self.path_objl_valid = str()
+        self.Ncl = int()
+        self.psize = int()
+        self.bsize = int()
+        self.nepochs = int()
+        self.steps_per_e = int()
+        self.steps_per_v = int()
+        self.flag_direct_read = bool()
+        self.flag_bootstrap = bool()
+        self.rnd_shift = int()
+
+    def write(self, filename):
+        root = ET.Element('paramsTrain')
+
+        p = ET.SubElement(root, 'path_out')
+        p.set('path', str(self.path_out))
+
+        p = ET.SubElement(root, 'path_tomo')
+        for idx in range(len(self.path_tomo)):
+            pp = ET.SubElement(p, 'tomo' + str(idx))
+            pp.set('path', str(self.path_tomo[idx]))
+
+        p = ET.SubElement(root, 'path_target')
+        for idx in range(len(self.path_target)):
+            pp = ET.SubElement(p, 'target' + str(idx))
+            pp.set('path', str(self.path_target[idx]))
+
+
+        p = ET.SubElement(root, 'path_objl_train')
+        p.set('path', str(self.path_objl_train))
+
+        p = ET.SubElement(root, 'path_objl_valid')
+        p.set('path', str(self.path_objl_valid))
+
+        p = ET.SubElement(root, 'number_of_classes')
+        p.set('n', str(self.Ncl))
+
+        p = ET.SubElement(root, 'patch_size')
+        p.set('n', str(self.psize))
+
+        p = ET.SubElement(root, 'batch_size')
+        p.set('n', str(self.bsize))
+
+        p = ET.SubElement(root, 'number_of_epochs')
+        p.set('n', str(self.nepochs))
+
+        p = ET.SubElement(root, 'steps_per_epoch')
+        p.set('n', str(self.steps_per_e))
+
+        p = ET.SubElement(root, 'steps_per_validation')
+        p.set('n', str(self.steps_per_v))
+
+        p = ET.SubElement(root, 'flag_direct_read')
+        p.set('flag', str(self.flag_direct_read))
+
+        p = ET.SubElement(root, 'flag_bootstrap')
+        p.set('flag', str(self.flag_bootstrap))
+
+        p = ET.SubElement(root, 'random_shift')
+        p.set('shift', str(self.rnd_shift))
+
+        tree = ET.ElementTree(root)
+        tree.write(filename)

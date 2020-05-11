@@ -57,12 +57,12 @@ class DeepFinderSegmentation(Volume):
         return self._tomoName.get()
 
 
-# class SetOfDeepFinderSegmentations(SetOfVolumes):
-#     ITEM_TYPE = DeepFinderSegmentation
-#     EXPOSE_ITEMS = True
-#
-#     def __init__(self, *args, **kwargs):
-#         SetOfVolumes.__init__(self, **kwargs)
+class SetOfDeepFinderSegmentations(SetOfVolumes):
+    ITEM_TYPE = DeepFinderSegmentation
+    EXPOSE_ITEMS = True
+
+    def __init__(self, *args, **kwargs):
+        SetOfVolumes.__init__(self, **kwargs)
 
 
 # class DeepFinderNet(EMObject):

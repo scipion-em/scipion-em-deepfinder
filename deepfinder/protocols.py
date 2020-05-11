@@ -32,7 +32,7 @@ from tomo.objects import Coordinate3D, Tomogram
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
-from deepfinder.objects import DeepFinderSegmentation
+from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
 
 import os
 
@@ -168,7 +168,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
         # Remark: only 1 setOfCoordinates3D can exist at a time, else:
         # "Protocol failed: Cannot operate on a closed database."
         for lbl in lbl_list:
-            coord3DSet = self._createSetOfCoordinates3D(setTomograms)
+            coord3DSet = self._createSetOfCoordinates3D(setTomograms, lbl) # lbl is a suffix for sqlite filename. Important, else overwrite!
             coord3DSet.setName('Class '+str(lbl))
             coord3DSet.setPrecedents(setTomograms)
             coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
@@ -196,12 +196,16 @@ class DeepFinderAnnotations(ProtTomoPicking):
             # Link to output:
             name = 'outputCoordinates3Dclass'+str(lbl)
             args = {}
-            args[name] = coord3DSet
             coord3DSet.setStreamState(Set.STREAM_OPEN)
+            args[name] = coord3DSet
+
             self._defineOutputs(**args)
             self._defineSourceRelation(setTomograms, coord3DSet)
 
-        pass
+        # I (emoebel) don't know what this is for, but is apparently necessary (copied from Estrella's XmippProtCCroi)
+        for outputset in self._iterOutputsNew():
+            outputset[1].setStreamState(Set.STREAM_CLOSED)
+        self._store()
 
     # --------------------------- DEFINE info functions ----------------------
     def getMethods(self, output):
@@ -398,9 +402,152 @@ class DeepFinderDisplay(Protocol):
             fname = self.segmentation.get().getFileName()
             deepfinder_args += ' -l ' + fname
 
+            # TODO: if seg obj is associated to a tomo obj, then display tomo
+            # (for some reason fname_tomo below is not a string)
+            #fname_tomo = str( self.segmentation.get().getTomoName() )
+            #if fname_tomo != '':
+            #    deepfinder_args += ' -t ' + fname_tomo
+
         # Launch display GUI:
         Plugin.runDeepFinder(self, 'display', deepfinder_args)
 
+
+    # --------------------------- INFO functions -----------------------------------
+    def _summary(self):
+        """ Summarize what the protocol has done"""
+        summary = []
+
+        if self.isFinished():
+
+            summary.append("This protocol has printed *%s* %i times." % (self.message, self.times))
+        return summary
+
+    def _methods(self):
+        methods = []
+
+        if self.isFinished():
+            methods.append("%s has been printed in this run %i times." % (self.message, self.times))
+            if self.previousCount.hasPointer():
+                methods.append("Accumulated count from previous runs were %i."
+                               " In total, %s messages has been printed."
+                               % (self.previousCount, self.count))
+        return methods
+
+class DeepFinderSetifySegmentations(Protocol):
+    """ This protocol will print hello world in the console
+         IMPORTANT: Classes names should be unique, better prefix them"""
+    _label = 'setify segmentations'
+
+    # -------------------------- DEFINE param functions ----------------------
+    def _defineParams(self, form):
+        """ Define the input parameters that will be used.
+        Params:
+            form: this is the form to be populated with sections and params.
+        """
+        # You need a params to belong to a section:
+        form.addSection(label=Message.LABEL_INPUT)
+
+
+        form.addParam('segmentations', params.MultiPointerParam, label="Training coordinates",
+                      pointerClass='DeepFinderSegmentation', help='Select segmentation to be merged into a set.')
+
+    # --------------------------- STEPS functions ------------------------------
+    def _insertAllSteps(self):
+        # Insert processing steps
+        self._insertFunctionStep('setifyStep')
+
+    def setifyStep(self):
+        segmSet = SetOfDeepFinderSegmentations()
+        for pointer in self.segmentations:
+            segm = pointer.get()
+            segmSet.append(segm)
+
+        self._defineOutputs(outputSegmentationSet=segmSet)
+
+
+
+class DeepFinderTrain(Protocol):
+    """ This protocol will print hello world in the console
+     IMPORTANT: Classes names should be unique, better prefix them"""
+    _label = 'train'
+
+    # -------------------------- DEFINE param functions ----------------------
+    def _defineParams(self, form):
+        """ Define the input parameters that will be used.
+        Params:
+            form: this is the form to be populated with sections and params.
+        """
+        # You need a params to belong to a section:
+        form.addSection(label=Message.LABEL_INPUT)
+
+        form.addParam('targets', PointerParam,
+                      pointerClass='SetOfDeepFinderSegmentations',
+                      label="Training examples", important=True,
+                      help='Training dataset. Please select here your targets. The corresponding tomogram will be loaded automatically.')
+
+        form.addParam('coordTrain', params.MultiPointerParam, label="Training coordinates",
+                      pointerClass='SetOfCoordinates3D', help='Select coordinate sets for training.')
+
+        form.addParam('coordValid', params.MultiPointerParam, label="Validation coordinates",
+                      pointerClass='SetOfCoordinates3D', help='Select coordinate sets for validation.')
+
+        form.addParam('psize', params.IntParam,
+                      default=56,
+                      choices=list(range(24,65,4)),
+                      label='Patch size', important=True,
+                      help='')
+
+        form.addParam('bsize', params.IntParam,
+                      default=25,
+                      label='Batch size', important=True,
+                      help='')
+
+        form.addParam('epochs', params.IntParam,
+                      default=100,
+                      label='Number of epochs', important=True,
+                      help='')
+
+        form.addParam('stepsPerE', params.IntParam,
+                      default=100,
+                      label='Steps per epoch', important=True,
+                      help='')
+
+        form.addParam('stepsPerV', params.IntParam,
+                      default=10,
+                      label='Steps per validation', important=True,
+                      help='')
+
+        form.addParam('bootstrap', params.BooleanParam,
+                      default=True,
+                      label='Bootstrap', important=True,
+                      help='')
+
+        form.addParam('rndShift', params.IntParam,
+                      default=13,
+                      label='Random shift', important=True,
+                      help='')
+
+    # --------------------------- STEPS functions ------------------------------
+    def _insertAllSteps(self):
+        # Insert processing steps
+        self._insertFunctionStep('trainingStep')
+        self._insertFunctionStep('createOutputStep')
+
+    def trainingStep(self):
+        path_tomo = []
+        path_segm = []
+        for segm in self.targets.get().iterItems():
+            # Generate objl filename (output):
+            fname_segm = segm.getFileName()
+            fname_tomo = segm.getTomoName()
+            path_tomo.append(fname_segm)
+            path_segm.append(fname_tomo)
+
+        print(path_tomo)
+        print(path_segm)
+
+    def createOutputStep(self):
+        pass
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):
