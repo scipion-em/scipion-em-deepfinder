@@ -133,7 +133,9 @@ class DeepFinderSetifySegmentations(Protocol, ProtDeepFinderBase):
         self._insertFunctionStep('setifyStep')
 
     def setifyStep(self):
+        samplingRate = self.segmentations[0].get().getSamplingRate()
         segmSet = self._createSetOfDeepFinderSegmentations()
+        segmSet.setSamplingRate(samplingRate)
         for pointer in self.segmentations:
             segm = pointer.get()
             segmSet.append(segm)

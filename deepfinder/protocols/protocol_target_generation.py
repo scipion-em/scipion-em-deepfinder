@@ -34,6 +34,8 @@ from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
 
+from deepfinder.protocols import ProtDeepFinderBase
+
 import os
 
 """
@@ -41,10 +43,15 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
+class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
     """ This protocol generates segmentation maps from annotations. These segmentation maps will be used as targets
      to train DeepFinder """
     _label = 'generate sphere target'
+
+    def __init__(self, **args):
+        Protocol.__init__(self, **args)
+        self.tomoname_list = []
+        self.targetname_list = []
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -56,7 +63,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
         form.addSection(label=Message.LABEL_INPUT)
 
         form.addParam('inputCoordinates', params.MultiPointerParam, label="Input coordinates",
-                      pointerClass='SetOfCoordinates3D', help='Select coordinate sets for each class.')
+                      pointerClass='SetOfCoordinates3D', help='1 coordinate set per class. A set may contain coordinates from different tomograms.')
 
         form.addParam('initialVolume', PointerParam,
                       pointerClass='Tomogram',
@@ -80,7 +87,18 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
         # check out setOfCoord3D.iterCoordinates(vol): Iterate over the coordinates associated with a tomogram.
         # getPrecedents(): Returns the SetOfTomograms or Tilt Series associated with this SetOfCoordinates
 
-        # First, convert the input setOfCoordinates3D to objl, and save objl in tmp folder:
+        # --------------------------------------------------------------------------------------------------------------
+        # First, get list of unique tomo filenames:
+        tomoname_list = []
+        for pointer in self.inputCoordinates: # first get all filenames
+            coord3DSet = pointer.get()
+            for coord in coord3DSet.iterItems():
+                tomoname_list.append(coord.getVolName())
+        tomoname_set = set(tomoname_list)  # insert the list to the set: the set stores only unique values
+        tomoname_list = (list(tomoname_set))  # convert the set to the list
+        self.tomoname_list = tomoname_list # store as attribute for createOutputStep
+
+        # Then, convert the input setOfCoordinates3D to objl
         l = 1 # one class/setOfCoordinate3D. Class labels are reassigned here, and may not correspond to the label from annotation step.
         objl = []
         for pointer in self.inputCoordinates:
@@ -93,65 +111,83 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol):
                 y = coord.getY()
                 z = coord.getZ()
                 lbl = l
-                cv.objl_add(objl, label=lbl, coord=[z,y,x])
+                tidx = tomoname_list.index( coord.getVolName() )
+                cv.objl_add(objl, label=lbl, coord=[z,y,x], tomo_idx=tidx)
                 print('x='+str(x) + ', y=' + str(y) + ', z='+str(z)+', lbl='+str(lbl))
             l+=1
-        fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), 'objl.xml'))
-        cv.objl_write(objl, fname_objl)
 
-        # Next, prepare and save parameter file for DeepFinder
+        # --------------------------------------------------------------------------------------------------------------
+        # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
         params = cv.ParamsGenTarget()
-        params.path_objl = fname_objl
-
-        # Set optional volume for target initialization:
-        if self.initialVolume.get()!=None:
-            params.path_initial_vol = self.initialVolume.get().getFileName()
-
-        # Set tomogram size:
-        coord = self.inputCoordinates[0].get().getFirstItem() # take 1st element of 1st setOfCoord3D
-        #dimX, dimY, dimZ = coord.getVolume().getDim() # getVolume does not work. So I have to proceed as follows:
-        tomo = Tomogram()
-        tomo.setFileName(coord.getVolName())
-        dimX, dimY, dimZ = tomo.getDim()
-        params.tomo_size = (dimZ, dimY, dimX)
-
         # Set strategy:
         params.strategy = 'spheres'
-
         # Set radius list:
         radius_list_string = self.sphereRadii.get()
         radius_list = []
-        for r in radius_list_string.split(','):radius_list.append(int(r))
+        for r in radius_list_string.split(','): radius_list.append(int(r))
         params.radius_list = radius_list
-        print('RADIUS LIST : '+str(radius_list))
+        # Set optional volume for target initialization:
+        if self.initialVolume.get() != None: # TODO should be 1 initial vol per target
+            params.path_initial_vol = self.initialVolume.get().getFileName()
 
-        # Set path to where write the generated target:
-        params.path_target = os.path.abspath(os.path.join(self._getExtraPath(), 'target.mrc'))
+        # --------------------------------------------------------------------------------------------------------------
+        # Now, set parameters specific to each tomogram:
+        for tidx,tomoname in enumerate(tomoname_list):
+            # Save objl to tmp folder:
+            objl_tomo = cv.objl_get_tomo(objl,tidx)
+            fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), 'objl.xml'))
+            cv.objl_write(objl_tomo, fname_objl)
 
-        # Save the parameter file:
-        fname_params = os.path.abspath(os.path.join(self._getExtraPath(), 'params_target_generation.xml'))
-        params.write(fname_params)
+            params.path_objl = fname_objl
 
-        # Launch DeepFinder target generation:
-        deepfinder_args = '-p ' + fname_params
-        Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
+            # Set tomogram size:
+            tomo = Tomogram()
+            tomo.setFileName(tomoname)
+            dimX, dimY, dimZ = tomo.getDim()
+            params.tomo_size = (dimZ, dimY, dimX)
+
+            # Set path to where write the generated target:
+            fname_tomo = os.path.splitext(tomoname)
+            fname_tomo = os.path.basename(fname_tomo[0])
+            fname_target = 'target_' + fname_tomo + '.mrc'
+            fname_target = os.path.abspath(os.path.join(self._getExtraPath(), fname_target))
+            self.targetname_list.append(fname_target)
+            params.path_target = fname_target
+
+            # Save the parameter file:
+            fname_params = os.path.abspath(os.path.join(self._getExtraPath(), 'params_target_generation.xml'))
+            params.write(fname_params)
+
+            # Launch DeepFinder target generation:
+            deepfinder_args = '-p ' + fname_params
+            Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
     def createOutputStep(self):
-        # Import generated target from tmp folder and and store into segmentation object:
-        target = DeepFinderSegmentation() #Tomogram()
+        targetSet = self._createSetOfDeepFinderSegmentations()
+        targetSet.setName('sphere target set')
+        targetSet.setSamplingRate(10)
 
-        fname = os.path.abspath(os.path.join(self._getExtraPath(), 'target.mrc'))
-        target.setFileName(fname)
+        for tidx,targetname in enumerate(self.targetname_list):
+            # Import generated target from tmp folder and and store into segmentation object:
+            target = DeepFinderSegmentation()
+            target.setFileName(targetname)
 
-        # Link to origin tomogram:
-        coord = self.inputCoordinates[0].get().getFirstItem()  # take 1st element of 1st setOfCoord3D
-        #tomo = coord.getVolume() # getVolume does not work so I have to proceed as follows
-        #target.setTomogram(tomo)
-        target.setTomoName(coord.getVolName)
+            # Link to origin tomogram:
+            tomoname = self.tomoname_list[tidx]
+            target.setTomoName(tomoname)
+
+            # Set sampling rate:
+            tomo = Tomogram()
+            tomo.setFileName(tomoname)
+            samplingRate = tomo.getSamplingRate()
+            target.setSamplingRate(samplingRate)
+
+            targetSet.append(target)
+        #targetSet.setSamplingRate(samplingRate)
 
         # Link to output:
-        self._defineOutputs(outputTomogram=target)
-        pass
+        self._defineOutputs(outputTargetSet=targetSet)
+
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):

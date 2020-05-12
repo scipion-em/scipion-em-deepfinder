@@ -137,6 +137,26 @@ def objl_get_class(objl, label):
         objlOUT.append(objl[idx_class[idx]])
     return objlOUT
 
+def objl_get_tomo(objl, tomo_idx):
+    """
+    Get all objects originating from tomo 'tomo_idx'.
+
+    Args:
+        objl (list of dict): contains objects from various tomograms
+        tomo_idx (int): tomogram index
+    Returns:
+        list of dict: contains objects from tomogram 'tomo_idx'
+    """
+    idx_tomo = []
+    for idx in range(len(objl)):
+        if objl[idx]['tomo_idx'] == tomo_idx:
+            idx_tomo.append(idx)
+
+    objlOUT = []
+    for idx in range(len(idx_tomo)):
+        objlOUT.append(objl[idx_tomo[idx]])
+    return objlOUT
+
 
 class ParamsGenTarget():
     def __init__(self):
