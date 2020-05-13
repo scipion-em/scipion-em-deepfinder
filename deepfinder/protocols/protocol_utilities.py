@@ -64,12 +64,14 @@ class DeepFinderDisplay(Protocol):
                       label="Segmentation map", important=True, allowsNull=True,
                       help='Select segmentation map to display.')
 
+
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         # Insert processing steps
         self._insertFunctionStep('displayStep')
 
     def displayStep(self):
+        # TODO only one input: can be Tomogram or DeepFinderSegmentation. Depending on type, different call (as below)
         deepfinder_args = ''
         if self.tomogram.get() != None:
             fname = self.tomogram.get().getFileName()
@@ -78,11 +80,9 @@ class DeepFinderDisplay(Protocol):
             fname = self.segmentation.get().getFileName()
             deepfinder_args += ' -l ' + fname
 
-            # TODO: if seg obj is associated to a tomo obj, then display tomo
-            # (for some reason fname_tomo below is not a string)
-            #fname_tomo = str( self.segmentation.get().getTomoName() )
-            #if fname_tomo != '':
-            #    deepfinder_args += ' -t ' + fname_tomo
+            fname_tomo = str( self.segmentation.get().getTomoName() )
+            if fname_tomo != '':
+                deepfinder_args += ' -t ' + fname_tomo
 
         # Launch display GUI:
         Plugin.runDeepFinder(self, 'display', deepfinder_args)

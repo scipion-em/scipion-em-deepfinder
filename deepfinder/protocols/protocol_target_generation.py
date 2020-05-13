@@ -103,9 +103,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
         objl = []
         for pointer in self.inputCoordinates:
             coord3DSet = pointer.get()
-            print('-----------------------')
-            print(coord3DSet.getSummary())
-            print('-----------------------')
             for coord in coord3DSet.iterItems():
                 x = coord.getX()
                 y = coord.getY()
@@ -113,7 +110,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
                 lbl = l
                 tidx = tomoname_list.index( coord.getVolName() )
                 cv.objl_add(objl, label=lbl, coord=[z,y,x], tomo_idx=tidx)
-                print('x='+str(x) + ', y=' + str(y) + ', z='+str(z)+', lbl='+str(lbl))
             l+=1
 
         # --------------------------------------------------------------------------------------------------------------
@@ -165,28 +161,49 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
     def createOutputStep(self):
         targetSet = self._createSetOfDeepFinderSegmentations()
         targetSet.setName('sphere target set')
-        targetSet.setSamplingRate(10)
+        #targetSet.setSamplingRate(10)
 
-        for tidx,targetname in enumerate(self.targetname_list):
+        # target = DeepFinderSegmentation()
+        # for tidx,targetname in enumerate(self.targetname_list):
+        #     # Import generated target from tmp folder and and store into segmentation object:
+        #
+        #     target.cleanObjId()
+        #     target.setFileName(targetname)
+        #
+        #     # Link to origin tomogram:
+        #     tomoname = self.tomoname_list[tidx]
+        #     target.setTomoName(tomoname)
+        #
+        #     # Set sampling rate:
+        #     tomo = Tomogram()
+        #     tomo.setFileName(tomoname)
+        #     samplingRate = tomo.getSamplingRate()
+        #     print('SAMPLING RAAAATE:'+str(samplingRate))
+        #     target.setSamplingRate(samplingRate)
+        #
+        #     targetSet.append(target)
+        #
+        # # Link to output:
+        # self._defineOutputs(outputTargetSet=targetSet)
+
+        # For now, setOfDeepFinderSegmentations does not work. In the meantime, we output as DeepFinderSegmentations:
+        for tidx, targetname in enumerate(self.targetname_list):
             # Import generated target from tmp folder and and store into segmentation object:
             target = DeepFinderSegmentation()
+            target.cleanObjId()
             target.setFileName(targetname)
 
             # Link to origin tomogram:
             tomoname = self.tomoname_list[tidx]
             target.setTomoName(tomoname)
 
-            # Set sampling rate:
-            tomo = Tomogram()
-            tomo.setFileName(tomoname)
-            samplingRate = tomo.getSamplingRate()
-            target.setSamplingRate(samplingRate)
+            # Link to output:
+            name = 'target' + str(tidx)
+            args = {}
+            args[name] = target
 
-            targetSet.append(target)
-        #targetSet.setSamplingRate(samplingRate)
+            self._defineOutputs(**args)
 
-        # Link to output:
-        self._defineOutputs(outputTargetSet=targetSet)
 
 
     # --------------------------- INFO functions -----------------------------------

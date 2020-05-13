@@ -65,18 +65,18 @@ class SetOfDeepFinderSegmentations(SetOfVolumes):
         SetOfVolumes.__init__(self, **kwargs)
 
 
-# class DeepFinderNet(EMObject):
-#     """ Simple class to store the neural network model for DeepFinder. """
-#
-#     def __init__(self, path=None, **kwargs):
-#         EMObject.__init__(self, **kwargs)
-#         self._path = pwobj.String(path)
-#
-#     def getPath(self):
-#         return self._path.get()
-#
-#     def setPath(self, path):
-#         self._path.set(path)
-#
-#     def __str__(self):
-#         return "CryoloModel(path=%s)" % self.getPath()
+class DeepFinderNet(EMObject):
+    """ Simple class to store the neural network model for DeepFinder. """
+
+    def __init__(self, path=None, **kwargs):
+        EMObject.__init__(self, **kwargs)
+        self._path = pwobj.String(path)
+
+    def getPath(self):
+        return self._path.get()
+
+    def setPath(self, path):
+        self._path.set(path)
+
+    def __str__(self):
+        return "DeepFinderModel(path=%s)" % self.getPath()

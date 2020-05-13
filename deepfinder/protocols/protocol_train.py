@@ -32,7 +32,9 @@ from tomo.objects import Coordinate3D, Tomogram
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
-from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
+from deepfinder.objects import DeepFinderNet
+
+from deepfinder.protocols import ProtDeepFinderBase
 
 import os
 
@@ -41,9 +43,8 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class DeepFinderTrain(Protocol):
-    """ This protocol will print hello world in the console
-     IMPORTANT: Classes names should be unique, better prefix them"""
+class DeepFinderTrain(Protocol, ProtDeepFinderBase):
+    """ This protocol launches the training procedure """
     _label = 'train'
 
     # -------------------------- DEFINE param functions ----------------------
@@ -55,9 +56,14 @@ class DeepFinderTrain(Protocol):
         # You need a params to belong to a section:
         form.addSection(label=Message.LABEL_INPUT)
 
-        form.addParam('targets', PointerParam,
-                      pointerClass='SetOfDeepFinderSegmentations',
-                      label="Training examples", important=True,
+        #form.addParam('targets', PointerParam,
+        #              pointerClass='SetOfDeepFinderSegmentations',
+        #              label="Training examples", important=True,
+        #              help='Training dataset. Please select here your targets. The corresponding tomogram will be loaded automatically.')
+
+        form.addParam('targets', params.MultiPointerParam,
+                      pointerClass='DeepFinderSegmentation',
+                      label="Segmentation examples", important=True,
                       help='Training dataset. Please select here your targets. The corresponding tomogram will be loaded automatically.')
 
         form.addParam('coordTrain', params.MultiPointerParam, label="Training coordinates",
@@ -109,20 +115,56 @@ class DeepFinderTrain(Protocol):
         self._insertFunctionStep('createOutputStep')
 
     def trainingStep(self):
+        # Get paths to tomograms and corresponding targets:
         path_tomo = []
         path_segm = []
-        for segm in self.targets.get().iterItems():
-            # Generate objl filename (output):
+        #for segm in self.targets.get().iterItems():
+        for pointer in self.targets:
+            segm = pointer.get()
             fname_segm = segm.getFileName()
             fname_tomo = segm.getTomoName()
-            path_tomo.append(fname_segm)
-            path_segm.append(fname_tomo)
+            path_tomo.append(fname_tomo)
+            path_segm.append(fname_segm)
 
-        print(path_tomo)
-        print(path_segm)
+        # Get objl_train and objl_valid and save to temp folder:
+        objl_train = self._getObjlFromInputCoordinates(self.coordTrain, path_tomo)
+        objl_valid = self._getObjlFromInputCoordinates(self.coordValid, path_tomo)
+
+        fname_objl_train = os.path.abspath(os.path.join(self._getTmpPath(), 'objl_train.xml'))
+        cv.objl_write(objl_train, fname_objl_train)
+        fname_objl_valid = os.path.abspath(os.path.join(self._getTmpPath(), 'objl_valid.xml'))
+        cv.objl_write(objl_valid, fname_objl_valid)
+
+        # Save parameters to xml file:
+        params = cv.ParamsTrain()
+
+        params.path_out = os.path.abspath(self._getExtraPath())+'/'
+        params.path_tomo = path_tomo
+        params.path_target = path_segm
+        params.path_objl_train = fname_objl_train
+        params.path_objl_valid = fname_objl_valid
+        params.Ncl = len(cv.objl_get_labels(objl_train)) + 1 # (+1 for background class)
+        params.psize = self.psize.get()
+        params.bsize = self.bsize.get()
+        params.nepochs = self.epochs.get()
+        params.steps_per_e = self.stepsPerE.get()
+        params.steps_per_v = self.stepsPerV.get()
+        params.flag_direct_read = False # in current deepfinder version only works with tomos/targets stored as h5
+        params.flag_bootstrap = self.bootstrap.get()
+        params.rnd_shift = self.rndShift.get()
+
+        fname_params = os.path.abspath(os.path.join(self._getTmpPath(), 'params_train.xml'))
+        params.write(fname_params)
+
+        # Launch DeepFinder training:
+        deepfinder_args = '-p ' + fname_params
+        Plugin.runDeepFinder(self, 'train', deepfinder_args)
 
     def createOutputStep(self):
-        pass
+        netWeights = DeepFinderNet()
+        fname = os.path.abspath(os.path.join(self._getExtraPath(), 'net_weights_FINAL.xml'))
+        netWeights.setPath(fname)
+        self._defineOutputs(netWeights=netWeights)
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):
