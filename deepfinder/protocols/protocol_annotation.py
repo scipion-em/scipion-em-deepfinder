@@ -207,7 +207,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
             outputset[1].setStreamState(Set.STREAM_CLOSED)
         self._store()
 
-    # --------------------------- DEFINE info functions ----------------------
+    # --------------------------- DEFINE info functions ---------------------- # TODO
     def getMethods(self, output):
         msg = 'User picked %d particles ' % output.getSize()
         return msg

@@ -121,7 +121,7 @@ class DeepFinderSegmentation(ProtTomoPicking):
             self._defineOutputs(**args)
 
 
-    # --------------------------- DEFINE info functions ----------------------
+    # --------------------------- DEFINE info functions ---------------------- # TODO
     def getMethods(self, output):
         msg = 'User picked %d particles ' % output.getSize()
         return msg

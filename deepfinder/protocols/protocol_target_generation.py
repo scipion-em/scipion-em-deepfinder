@@ -159,8 +159,10 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
             Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
     def createOutputStep(self):
-        targetSet = self._createSetOfDeepFinderSegmentations()
-        targetSet.setName('sphere target set')
+        # /!\ This step does not work. It is supposed to output: setOfDeepfinderSegmentations
+
+        # targetSet = self._createSetOfDeepFinderSegmentations()
+        # targetSet.setName('sphere target set')
         #targetSet.setSamplingRate(10)
 
         # target = DeepFinderSegmentation()
@@ -190,7 +192,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
         for tidx, targetname in enumerate(self.targetname_list):
             # Import generated target from tmp folder and and store into segmentation object:
             target = DeepFinderSegmentation()
-            target.cleanObjId()
+            #target.cleanObjId()
             target.setFileName(targetname)
 
             # Link to origin tomogram:
@@ -203,10 +205,11 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
             args[name] = target
 
             self._defineOutputs(**args)
+        # The above used to work, but for an unknown reason now the output is malfunctioning
 
 
 
-    # --------------------------- INFO functions -----------------------------------
+    # --------------------------- INFO functions ----------------------------------- # TODO
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []

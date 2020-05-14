@@ -166,7 +166,7 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         netWeights.setPath(fname)
         self._defineOutputs(netWeights=netWeights)
 
-    # --------------------------- INFO functions -----------------------------------
+    # --------------------------- INFO functions ----------------------------------- # TODO
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []

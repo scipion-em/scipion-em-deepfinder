@@ -88,7 +88,7 @@ class DeepFinderDisplay(Protocol):
         Plugin.runDeepFinder(self, 'display', deepfinder_args)
 
 
-    # --------------------------- INFO functions -----------------------------------
+    # --------------------------- INFO functions ----------------------------------- # TODO
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []
@@ -109,35 +109,35 @@ class DeepFinderDisplay(Protocol):
                                % (self.previousCount, self.count))
         return methods
 
-class DeepFinderSetifySegmentations(Protocol, ProtDeepFinderBase):
-    """ This protocol will print hello world in the console
-         IMPORTANT: Classes names should be unique, better prefix them"""
-    _label = 'setify segmentations'
-
-    # -------------------------- DEFINE param functions ----------------------
-    def _defineParams(self, form):
-        """ Define the input parameters that will be used.
-        Params:
-            form: this is the form to be populated with sections and params.
-        """
-        # You need a params to belong to a section:
-        form.addSection(label=Message.LABEL_INPUT)
-
-
-        form.addParam('segmentations', params.MultiPointerParam, label="Training coordinates",
-                      pointerClass='DeepFinderSegmentation', help='Select segmentation to be merged into a set.')
-
-    # --------------------------- STEPS functions ------------------------------
-    def _insertAllSteps(self):
-        # Insert processing steps
-        self._insertFunctionStep('setifyStep')
-
-    def setifyStep(self):
-        samplingRate = self.segmentations[0].get().getSamplingRate()
-        segmSet = self._createSetOfDeepFinderSegmentations()
-        segmSet.setSamplingRate(samplingRate)
-        for pointer in self.segmentations:
-            segm = pointer.get()
-            segmSet.append(segm)
-
-        self._defineOutputs(outputSegmentationSet=segmSet)
+# class DeepFinderSetifySegmentations(Protocol, ProtDeepFinderBase):
+#     """ This protocol will print hello world in the console
+#          IMPORTANT: Classes names should be unique, better prefix them"""
+#     _label = 'setify segmentations'
+#
+#     # -------------------------- DEFINE param functions ----------------------
+#     def _defineParams(self, form):
+#         """ Define the input parameters that will be used.
+#         Params:
+#             form: this is the form to be populated with sections and params.
+#         """
+#         # You need a params to belong to a section:
+#         form.addSection(label=Message.LABEL_INPUT)
+#
+#
+#         form.addParam('segmentations', params.MultiPointerParam, label="Training coordinates",
+#                       pointerClass='DeepFinderSegmentation', help='Select segmentation to be merged into a set.')
+#
+#     # --------------------------- STEPS functions ------------------------------
+#     def _insertAllSteps(self):
+#         # Insert processing steps
+#         self._insertFunctionStep('setifyStep')
+#
+#     def setifyStep(self):
+#         samplingRate = self.segmentations[0].get().getSamplingRate()
+#         segmSet = self._createSetOfDeepFinderSegmentations()
+#         segmSet.setSamplingRate(samplingRate)
+#         for pointer in self.segmentations:
+#             segm = pointer.get()
+#             segmSet.append(segm)
+#
+#         self._defineOutputs(outputSegmentationSet=segmSet)
