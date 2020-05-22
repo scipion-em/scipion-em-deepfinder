@@ -89,7 +89,7 @@ class DeepFinderSegmentation(ProtTomoPicking):
 
             # Launch annotation GUI passing the tomogram file name
             deepfinder_args = '-t ' + tomo.getFileName()
-            deepfinder_args += ' -w ' + self.weights.getPath()
+            deepfinder_args += ' -w ' + self.weights.get().getPath() # FIXME: Return object from pointer
             deepfinder_args += ' -c ' + str(self.Ncl)
             deepfinder_args += ' -p ' + str(self.psize)
             deepfinder_args += ' -o ' + os.path.abspath(os.path.join(self._getExtraPath(), fname_segm))

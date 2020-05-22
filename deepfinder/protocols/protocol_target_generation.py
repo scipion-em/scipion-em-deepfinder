@@ -27,6 +27,9 @@
 from pyworkflow.object import Integer, Set
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
+
+from pwem.protocols import EMProtocol
+
 from tomo.protocols import ProtTomoPicking
 from tomo.objects import Coordinate3D, Tomogram
 
@@ -43,13 +46,13 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
+class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
     """ This protocol generates segmentation maps from annotations. These segmentation maps will be used as targets
      to train DeepFinder """
     _label = 'generate sphere target'
 
     def __init__(self, **args):
-        Protocol.__init__(self, **args)
+        EMProtocol.__init__(self, **args)
         self.tomoname_list = []
         self.targetname_list = []
 
@@ -92,8 +95,9 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
         tomoname_list = []
         for pointer in self.inputCoordinates: # first get all filenames
             coord3DSet = pointer.get()
+            samplingRate = coord3DSet.getSamplingRate()
             for coord in coord3DSet.iterItems():
-                tomoname_list.append(coord.getVolName())
+                tomoname_list.append((coord.getVolName(), samplingRate)) # FIXME: Tuple to keep SR for output Step
         tomoname_set = set(tomoname_list)  # insert the list to the set: the set stores only unique values
         tomoname_list = (list(tomoname_set))  # convert the set to the list
         self.tomoname_list = tomoname_list # store as attribute for createOutputStep
@@ -108,8 +112,9 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
                 y = coord.getY()
                 z = coord.getZ()
                 lbl = l
-                tidx = tomoname_list.index( coord.getVolName() )
-                cv.objl_add(objl, label=lbl, coord=[z,y,x], tomo_idx=tidx)
+                tidx = [idt for idt, item in enumerate(self.tomoname_list)
+                        if coord.getVolName() == item[0]]
+                cv.objl_add(objl, label=lbl, coord=[z,y,x], tomo_idx=tidx[0])
             l+=1
 
         # --------------------------------------------------------------------------------------------------------------
@@ -128,7 +133,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
 
         # --------------------------------------------------------------------------------------------------------------
         # Now, set parameters specific to each tomogram:
-        for tidx,tomoname in enumerate(tomoname_list):
+        for tidx,tomo_tuple in enumerate(tomoname_list):
             # Save objl to tmp folder:
             objl_tomo = cv.objl_get_tomo(objl,tidx)
             fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), 'objl.xml'))
@@ -138,12 +143,12 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
 
             # Set tomogram size:
             tomo = Tomogram()
-            tomo.setFileName(tomoname)
+            tomo.setFileName(tomo_tuple[0])
             dimX, dimY, dimZ = tomo.getDim()
             params.tomo_size = (dimZ, dimY, dimX)
 
             # Set path to where write the generated target:
-            fname_tomo = os.path.splitext(tomoname)
+            fname_tomo = os.path.splitext(tomo_tuple[0])
             fname_tomo = os.path.basename(fname_tomo[0])
             fname_target = 'target_' + fname_tomo + '.mrc'
             fname_target = os.path.abspath(os.path.join(self._getExtraPath(), fname_target))
@@ -161,53 +166,53 @@ class DeepFinderGenerateTrainingTargetsSpheres(Protocol, ProtDeepFinderBase):
     def createOutputStep(self):
         # /!\ This step does not work. It is supposed to output: setOfDeepfinderSegmentations
 
-        # targetSet = self._createSetOfDeepFinderSegmentations()
-        # targetSet.setName('sphere target set')
-        #targetSet.setSamplingRate(10)
+        targetSet = self._createSetOfDeepFinderSegmentations()
+        targetSet.setName('sphere target set')
+        targetSet.setSamplingRate(10) # FIXME: Probably one Ouput Set per Input Coordinate Set? (SR overwritten)
 
-        # target = DeepFinderSegmentation()
-        # for tidx,targetname in enumerate(self.targetname_list):
+        for tidx,targetname in enumerate(self.targetname_list):
+            # Import generated target from tmp folder and and store into segmentation object:
+
+            target = DeepFinderSegmentation()
+            target.cleanObjId()
+            target.setFileName(targetname)
+
+            # Link to origin tomogram:
+            tomoname = self.tomoname_list[tidx][0]
+            target.setTomoName(tomoname)
+
+            # Set sampling rate:
+            # tomo = Tomogram()
+            # tomo.setFileName(tomoname)
+            samplingRate = self.tomoname_list[tidx][1] # FIXME: Fixes Sampling Rate
+            print('SAMPLING RAAAATE:'+str(samplingRate))
+            target.setSamplingRate(samplingRate)
+
+            targetSet.append(target)
+
+        # Link to output:
+        # targetSet.write() # FIXME: EMProtocol is the one that has the method to save Sets
+        self._defineOutputs(outputTargetSet=targetSet)
+        # self._defineSourceRelation(self.inputCoordinates, targetSet) # FIXME: Maybe useful?
+
+        # # For now, setOfDeepFinderSegmentations does not work. In the meantime, we output as DeepFinderSegmentations:
+        # for tidx, targetname in enumerate(self.targetname_list):
         #     # Import generated target from tmp folder and and store into segmentation object:
-        #
-        #     target.cleanObjId()
+        #     target = DeepFinderSegmentation()
+        #     #target.cleanObjId()
         #     target.setFileName(targetname)
         #
         #     # Link to origin tomogram:
         #     tomoname = self.tomoname_list[tidx]
         #     target.setTomoName(tomoname)
         #
-        #     # Set sampling rate:
-        #     tomo = Tomogram()
-        #     tomo.setFileName(tomoname)
-        #     samplingRate = tomo.getSamplingRate()
-        #     print('SAMPLING RAAAATE:'+str(samplingRate))
-        #     target.setSamplingRate(samplingRate)
+        #     # Link to output:
+        #     name = 'target' + str(tidx)
+        #     args = {}
+        #     args[name] = target
         #
-        #     targetSet.append(target)
-        #
-        # # Link to output:
-        # self._defineOutputs(outputTargetSet=targetSet)
-
-        # For now, setOfDeepFinderSegmentations does not work. In the meantime, we output as DeepFinderSegmentations:
-        for tidx, targetname in enumerate(self.targetname_list):
-            # Import generated target from tmp folder and and store into segmentation object:
-            target = DeepFinderSegmentation()
-            #target.cleanObjId()
-            target.setFileName(targetname)
-
-            # Link to origin tomogram:
-            tomoname = self.tomoname_list[tidx]
-            target.setTomoName(tomoname)
-
-            # Link to output:
-            name = 'target' + str(tidx)
-            args = {}
-            args[name] = target
-
-            self._defineOutputs(**args)
-        # The above used to work, but for an unknown reason now the output is malfunctioning
-
-
+        #     self._defineOutputs(**args)
+        # # The above used to work, but for an unknown reason now the output is malfunctioning
 
     # --------------------------- INFO functions ----------------------------------- # TODO
     def _summary(self):

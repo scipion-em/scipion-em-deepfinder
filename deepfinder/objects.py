@@ -41,6 +41,7 @@ class DeepFinderSegmentation(Volume):
         self._tomoName = pwobj.String()
 
     def getTomogram(self): # does not work, similar problem to Coordinate3D.getVolume
+        # FIXME: Update method __getitem__ and iterItems (already avalailbe in SetOfCoordinates3D and SetOfMeshes)
         return self._tomoPointer.get()
 
     def setTomogram(self, tomo):
