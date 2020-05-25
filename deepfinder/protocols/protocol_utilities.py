@@ -60,7 +60,7 @@ class DeepFinderDisplay(Protocol):
                       help='Select tomogram to display.')
 
         form.addParam('segmentation', PointerParam,
-                      pointerClass='DeepFinderSegmentation',
+                      pointerClass='SetOfDeepFinderSegmentations',
                       label="Segmentation map", important=True, allowsNull=True,
                       help='Select segmentation map to display.')
 
@@ -72,17 +72,28 @@ class DeepFinderDisplay(Protocol):
 
     def displayStep(self):
         # TODO only one input: can be Tomogram or DeepFinderSegmentation. Depending on type, different call (as below)
+
         deepfinder_args = ''
         if self.tomogram.get() != None:
             fname = self.tomogram.get().getFileName()
             deepfinder_args += '-t ' + fname
         if self.segmentation.get() != None:
-            fname = self.segmentation.get().getFileName()
-            deepfinder_args += ' -l ' + fname
+            for seg in self.segmentation.get().iterItems():
+                fname = seg.getFileName()
+                deepfinder_args += ' -l ' + fname
 
-            fname_tomo = str( self.segmentation.get().getTomoName() )
-            if fname_tomo != '':
-                deepfinder_args += ' -t ' + fname_tomo
+                fname_tomo = str(seg.getTomoName())
+                if fname_tomo != '':  # if a tomo is linked to segmentation, also display tomo
+                    deepfinder_args += ' -t ' + fname_tomo
+
+
+
+            # fname = self.segmentation.get().getFileName()
+            # deepfinder_args += ' -l ' + fname
+            #
+            # fname_tomo = str( self.segmentation.get().getTomoName() )
+            # if fname_tomo != '': # if a tomo is linked to segmentation, also display tomo
+            #     deepfinder_args += ' -t ' + fname_tomo
 
         # Launch display GUI:
         Plugin.runDeepFinder(self, 'display', deepfinder_args)

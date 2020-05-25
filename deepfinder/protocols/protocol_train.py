@@ -56,15 +56,15 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         # You need a params to belong to a section:
         form.addSection(label=Message.LABEL_INPUT)
 
-        #form.addParam('targets', PointerParam,
-        #              pointerClass='SetOfDeepFinderSegmentations',
-        #              label="Training examples", important=True,
-        #              help='Training dataset. Please select here your targets. The corresponding tomogram will be loaded automatically.')
-
-        form.addParam('targets', params.MultiPointerParam,
-                      pointerClass='DeepFinderSegmentation',
+        form.addParam('targets', PointerParam,
+                      pointerClass='SetOfDeepFinderSegmentations',
                       label="Segmentation examples", important=True,
                       help='Training dataset. Please select here your targets. The corresponding tomogram will be loaded automatically.')
+
+        #form.addParam('targets', params.MultiPointerParam,
+        #              pointerClass='DeepFinderSegmentation',
+        #              label="Segmentation examples", important=True,
+        #              help='Training dataset. Please select here your targets. The corresponding tomogram will be loaded automatically.')
 
         form.addParam('coordTrain', params.MultiPointerParam, label="Training coordinates",
                       pointerClass='SetOfCoordinates3D', help='Select coordinate sets for training.')
@@ -118,9 +118,9 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         # Get paths to tomograms and corresponding targets:
         path_tomo = []
         path_segm = []
-        #for segm in self.targets.get().iterItems():
-        for pointer in self.targets:
-            segm = pointer.get()
+        #for pointer in self.targets:
+        #    segm = pointer.get()
+        for segm in self.targets.get().iterItems():
             fname_segm = segm.getFileName()
             fname_tomo = segm.getTomoName()
             path_tomo.append(fname_tomo)

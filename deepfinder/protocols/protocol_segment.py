@@ -103,11 +103,13 @@ class DeepFinderSegmentation(ProtTomoPicking):
             fname_tomo = os.path.splitext(tomo.getFileName())
             fname_tomo = os.path.basename(fname_tomo[0])
             fname_segm = 'segmentation_' + fname_tomo + '.mrc'
+            fname_segm = os.path.abspath(os.path.join(self._getExtraPath(), fname_segm))
+            print(fname_segm)
 
             # Import generated target from tmp folder and and store into segmentation object:
             segm = DeepFinderSegmentation()
             segm.cleanObjId()
-            segm.setFileName(fname_segm)
+            segm.setFileName(fname_segm) # TODO: binned segmentation
 
             # Link to origin tomogram:
             tomoname = tomo.getFileName()

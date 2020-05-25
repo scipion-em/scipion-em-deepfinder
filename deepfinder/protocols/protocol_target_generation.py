@@ -168,7 +168,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
 
         targetSet = self._createSetOfDeepFinderSegmentations()
         targetSet.setName('sphere target set')
-        targetSet.setSamplingRate(10) # FIXME: Probably one Ouput Set per Input Coordinate Set? (SR overwritten)
 
         for tidx,targetname in enumerate(self.targetname_list):
             # Import generated target from tmp folder and and store into segmentation object:
@@ -185,7 +184,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
             # tomo = Tomogram()
             # tomo.setFileName(tomoname)
             samplingRate = self.tomoname_list[tidx][1] # FIXME: Fixes Sampling Rate
-            print('SAMPLING RAAAATE:'+str(samplingRate))
             target.setSamplingRate(samplingRate)
 
             targetSet.append(target)
@@ -193,7 +191,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
         # Link to output:
         # targetSet.write() # FIXME: EMProtocol is the one that has the method to save Sets
         self._defineOutputs(outputTargetSet=targetSet)
-        # self._defineSourceRelation(self.inputCoordinates, targetSet) # FIXME: Maybe useful?
+        self._defineSourceRelation(self.inputCoordinates, targetSet)
 
         # # For now, setOfDeepFinderSegmentations does not work. In the meantime, we output as DeepFinderSegmentations:
         # for tidx, targetname in enumerate(self.targetname_list):
