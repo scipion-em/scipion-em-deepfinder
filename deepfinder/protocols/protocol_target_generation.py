@@ -117,6 +117,8 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
                 cv.objl_add(objl, label=lbl, coord=[z,y,x], tomo_idx=tidx[0])
             l+=1
 
+        #objl = self._getObjlFromInputCoordinates(self.inputCoordinates, tomoname_list)
+
         # --------------------------------------------------------------------------------------------------------------
         # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
         params = cv.ParamsGenTarget()
@@ -192,24 +194,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
         self._defineOutputs(outputTargetSet=targetSet)
         self._defineSourceRelation(self.inputCoordinates, targetSet)
 
-        # # For now, setOfDeepFinderSegmentations does not work. In the meantime, we output as DeepFinderSegmentations:
-        # for tidx, targetname in enumerate(self.targetname_list):
-        #     # Import generated target from tmp folder and and store into segmentation object:
-        #     target = DeepFinderSegmentation()
-        #     #target.cleanObjId()
-        #     target.setFileName(targetname)
-        #
-        #     # Link to origin tomogram:
-        #     tomoname = self.tomoname_list[tidx]
-        #     target.setTomoName(tomoname)
-        #
-        #     # Link to output:
-        #     name = 'target' + str(tidx)
-        #     args = {}
-        #     args[name] = target
-        #
-        #     self._defineOutputs(**args)
-        # # The above used to work, but for an unknown reason now the output is malfunctioning
 
     # --------------------------- INFO functions ----------------------------------- # TODO
     def _summary(self):

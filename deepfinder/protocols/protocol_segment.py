@@ -57,10 +57,10 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
                       label="Neural network model", important=True,
                       help='Select a trained DeepFinder neural network.')
 
-        form.addParam('Ncl', params.IntParam,
-                      default=100,
-                      label='Number of classes', important=True,
-                      help='Number of classes, background included')
+        #form.addParam('Ncl', params.IntParam,
+        #              default=100,
+        #              label='Number of classes', important=True,
+        #              help='Number of classes, background included')
 
         form.addParam('psize', params.IntParam,
                       default=100,
@@ -91,7 +91,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             # Launch annotation GUI passing the tomogram file name
             deepfinder_args = '-t ' + tomo.getFileName()
             deepfinder_args += ' -w ' + self.weights.get().getPath() # FIXME: Return object from pointer
-            deepfinder_args += ' -c ' + str(self.Ncl)
+            deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
             deepfinder_args += ' -p ' + str(self.psize)
             deepfinder_args += ' -o ' + os.path.abspath(os.path.join(self._getExtraPath(), fname_segm))
             if self.bin:

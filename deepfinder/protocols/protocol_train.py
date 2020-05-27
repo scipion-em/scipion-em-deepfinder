@@ -47,6 +47,10 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
     """ This protocol launches the training procedure """
     _label = 'train'
 
+    def __init__(self, **args):
+        Protocol.__init__(self, **args)
+        self.nClass = None
+
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         """ Define the input parameters that will be used.
@@ -135,6 +139,9 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         fname_objl_valid = os.path.abspath(os.path.join(self._getTmpPath(), 'objl_valid.xml'))
         cv.objl_write(objl_valid, fname_objl_valid)
 
+        # Get number of classes from objl, and store as attribute (useful for output step):
+        self.nClass = len(cv.objl_get_labels(objl_train)) + 1 # (+1 for background class)
+
         # Save parameters to xml file:
         params = cv.ParamsTrain()
 
@@ -143,7 +150,7 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         params.path_target = path_segm
         params.path_objl_train = fname_objl_train
         params.path_objl_valid = fname_objl_valid
-        params.Ncl = len(cv.objl_get_labels(objl_train)) + 1 # (+1 for background class)
+        params.Ncl = self.nClass
         params.psize = self.psize.get()
         params.bsize = self.bsize.get()
         params.nepochs = self.epochs.get()
@@ -164,6 +171,7 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         netWeights = DeepFinderNet()
         fname = os.path.abspath(os.path.join(self._getExtraPath(), 'net_weights_FINAL.h5'))
         netWeights.setPath(fname)
+        netWeights.setNbOfClasses(self.nClass)
         self._defineOutputs(netWeights=netWeights)
 
     # --------------------------- INFO functions ----------------------------------- # TODO
