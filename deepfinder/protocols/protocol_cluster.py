@@ -43,7 +43,7 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class DeepFinderCluster(ProtDeepFinderBase):
+class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol analyses segmentation maps and outputs particle coordinates and class."""
 
     _label = 'cluster'
@@ -79,7 +79,7 @@ class DeepFinderCluster(ProtDeepFinderBase):
             fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), fname_objl))
 
             # Launch DeepFinder executable:
-            deepfinder_args = '-l ' + fname_segm
+            deepfinder_args = '-l ' + segm.getFileName()
             deepfinder_args += ' -r ' + str(self.cradius)
             deepfinder_args += ' -o ' + fname_objl
 
@@ -94,7 +94,7 @@ class DeepFinderCluster(ProtDeepFinderBase):
         for segm in setSegmentations.iterItems():
             # Get objl filename:
             fname_segm = os.path.splitext(segm.getFileName())
-            fname_segm = os.path.basename(fname_tomo[0])
+            fname_segm = os.path.basename(fname_segm[0])
             fname_objl = 'objl_' + fname_segm + '.xml'
 
             # Read objl:
@@ -117,7 +117,7 @@ class DeepFinderCluster(ProtDeepFinderBase):
             for segm in setSegmentations.iterItems():
                 # Get objl filename:
                 fname_segm = os.path.splitext(segm.getFileName())
-                fname_segm = os.path.basename(fname_tomo[0])
+                fname_segm = os.path.basename(fname_segm[0])
                 fname_objl = 'objl_' + fname_segm + '.xml'
 
                 # Read objl:
@@ -143,7 +143,7 @@ class DeepFinderCluster(ProtDeepFinderBase):
             args[name] = coord3DSet
 
             self._defineOutputs(**args)
-            self._defineSourceRelation(setTomograms, coord3DSet)
+            self._defineSourceRelation(setSegmentations, coord3DSet)
 
         # I (emoebel) don't know what this is for, but is apparently necessary (copied from Estrella's XmippProtCCroi)
         for outputset in self._iterOutputsNew():
