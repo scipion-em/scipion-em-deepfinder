@@ -88,7 +88,7 @@ class Plugin(pwem.Plugin):
         installationCmd += 'conda activate %s && ' % env_name
 
         # Install downloaded code
-        installationCmd += 'pip install -r requirements.txt && '
+        installationCmd += 'pip install -r requirements.txt && ' # for GPU usage should be requirements_gpu.txt
 
         # Flag installation finished
         installationCmd += 'touch %s' % DF_INSTALLED

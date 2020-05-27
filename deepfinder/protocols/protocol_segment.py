@@ -34,6 +34,7 @@ from deepfinder.objects import DeepFinderNet
 from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
+from deepfinder.protocols import ProtDeepFinderBase
 
 import os
 
@@ -42,7 +43,7 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class DeepFinderSegmentation(ProtTomoPicking):
+class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol segments tomograms, using a trained neural network."""
 
     _label = 'segment'
@@ -98,6 +99,9 @@ class DeepFinderSegmentation(ProtTomoPicking):
             Plugin.runDeepFinder(self, 'segment', deepfinder_args)
 
     def createOutputStep(self):
+        segmSet = self._createSetOfDeepFinderSegmentations()
+        segmSet.setName('segmentation set')
+
         for tomo in self.inputTomograms.get().iterItems():
             # Generate objl filename (output):
             fname_tomo = os.path.splitext(tomo.getFileName())
@@ -116,11 +120,17 @@ class DeepFinderSegmentation(ProtTomoPicking):
             segm.setTomoName(tomoname)
 
             # Link to output:
-            name = 'segmentation_' + fname_tomo
-            args = {}
-            args[name] = segm
+            #name = 'segmentation_' + fname_tomo
+            #args = {}
+            #args[name] = segm
 
-            self._defineOutputs(**args)
+            #self._defineOutputs(**args)
+            segmSet.append(segm)
+
+        # Link to output:
+        # targetSet.write() # FIXME: EMProtocol is the one that has the method to save Sets
+        self._defineOutputs(outputSegmentationSet=segmSet)
+        self._defineSourceRelation(self.inputTomograms, segmSet)
 
 
     # --------------------------- DEFINE info functions ---------------------- # TODO

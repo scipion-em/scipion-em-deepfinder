@@ -162,7 +162,7 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
 
     def createOutputStep(self):
         netWeights = DeepFinderNet()
-        fname = os.path.abspath(os.path.join(self._getExtraPath(), 'net_weights_FINAL.xml'))
+        fname = os.path.abspath(os.path.join(self._getExtraPath(), 'net_weights_FINAL.h5'))
         netWeights.setPath(fname)
         self._defineOutputs(netWeights=netWeights)
 

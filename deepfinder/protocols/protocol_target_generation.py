@@ -164,7 +164,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
             Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
     def createOutputStep(self):
-        # /!\ This step does not work. It is supposed to output: setOfDeepfinderSegmentations
 
         targetSet = self._createSetOfDeepFinderSegmentations()
         targetSet.setName('sphere target set')

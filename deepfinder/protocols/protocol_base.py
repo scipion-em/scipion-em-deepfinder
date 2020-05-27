@@ -34,6 +34,13 @@ class ProtDeepFinderBase(ProtTomoBase):
         return self._createSet(deepfinder.objects.SetOfDeepFinderSegmentations,
                                'segmentations%s.sqlite', suffix)
 
+    def _createSetOfCoordinates3DWithScore(self, volSet, suffix=''):
+        coord3DSet = self._createSet(deepfinder.objects.SetOfCoordinates3DWithScore,
+                                     'coordinates%s.sqlite', suffix,
+                                     indexes=['_volId'])
+        coord3DSet.setPrecedents(volSet)
+        return coord3DSet
+
     def _getObjlFromInputCoordinates(self, inputCoordinates, tomoname_list):
         """Get all objects of specified class.
 

@@ -24,7 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from tomo.objects import Tomogram, SetOfTomograms
+from tomo.objects import Coordinate3D, SetOfCoordinates3D
 import pyworkflow.object as pwobj
 from pwem.objects.data import EMObject, Volume, SetOfVolumes
 
@@ -81,3 +81,26 @@ class DeepFinderNet(EMObject):
 
     def __str__(self):
         return "DeepFinderModel(path=%s)" % self.getPath()
+
+
+class Coordinate3DWithScore(Coordinate3D):
+    """Extension of Coordinate3D adding a score attribute. Useful for automatic particle picking, where algorithms
+    may attribute scores to hits."""
+    def __init__(self, **kwargs):
+        Coordinate3D.__init__(self, **kwargs)
+        self._score = pwobj.Scalar(kwargs.get('score', None))
+
+    def getScore(self):
+        return self._score.get()
+
+    def setScore(self, x):
+        self._score.set(x)
+
+
+class SetOfCoordinates3DWithScore(SetOfCoordinates3D):
+    """ Encapsulate the logic of a set of Coordinate3DWithScore.
+    """
+    ITEM_TYPE = Coordinate3DWithScore
+
+    def __init__(self, **kwargs):
+        SetOfCoordinates3D.__init__(self, **kwargs)
