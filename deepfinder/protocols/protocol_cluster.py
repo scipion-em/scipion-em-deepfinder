@@ -28,12 +28,10 @@ from pyworkflow.object import Integer, Set
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
 from tomo.protocols import ProtTomoPicking
-from tomo.objects import Coordinate3D, Tomogram
 from deepfinder.objects import Coordinate3DWithScore
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
-from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
 from deepfinder.protocols import ProtDeepFinderBase
 
 import os

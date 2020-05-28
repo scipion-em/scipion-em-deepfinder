@@ -24,16 +24,12 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from pyworkflow.object import Integer, Set
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
 from tomo.protocols import ProtTomoPicking
-from tomo.objects import Coordinate3D, Tomogram
-from deepfinder.objects import DeepFinderNet
 
 from deepfinder import Plugin
-import deepfinder.convert as cv
-from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
+from deepfinder.objects import DeepFinderSegmentation
 from deepfinder.protocols import ProtDeepFinderBase
 
 import os
@@ -108,29 +104,53 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             fname_tomo = os.path.basename(fname_tomo[0])
             fname_segm = 'segmentation_' + fname_tomo + '.mrc'
             fname_segm = os.path.abspath(os.path.join(self._getExtraPath(), fname_segm))
-            print(fname_segm)
 
             # Import generated target from tmp folder and and store into segmentation object:
             segm = DeepFinderSegmentation()
             segm.cleanObjId()
-            segm.setFileName(fname_segm) # TODO: binned segmentation
+            segm.setFileName(fname_segm)
 
             # Link to origin tomogram:
             tomoname = tomo.getFileName()
             segm.setTomoName(tomoname)
 
-            # Link to output:
-            #name = 'segmentation_' + fname_tomo
-            #args = {}
-            #args[name] = segm
-
-            #self._defineOutputs(**args)
+            # Append to set:
             segmSet.append(segm)
 
         # Link to output:
         # targetSet.write() # FIXME: EMProtocol is the one that has the method to save Sets
         self._defineOutputs(outputSegmentationSet=segmSet)
         self._defineSourceRelation(self.inputTomograms, segmSet)
+
+
+        # If 'bin' option is checked, also link binned segmentation maps to output.
+        # I have to do this in a separate loop because only one set can be open at a time
+        # else error: Protocol failed: Cannot operate on a closed database
+        if self.bin:
+            segmSetBin = self._createSetOfDeepFinderSegmentations()
+            segmSetBin.setName('binned segmentation set')
+
+            for tomo in self.inputTomograms.get().iterItems():
+                # Generate objl filename (output):
+                fname_tomo = os.path.splitext(tomo.getFileName())
+                fname_tomo = os.path.basename(fname_tomo[0])
+                fname_segm = 'segmentation_' + fname_tomo + '_binned.mrc'
+                fname_segm = os.path.abspath(os.path.join(self._getExtraPath(), fname_segm))
+
+                # Import generated target from tmp folder and and store into segmentation object:
+                segm = DeepFinderSegmentation()
+                segm.cleanObjId()
+                segm.setFileName(fname_segm)
+
+                # Link to origin tomogram:
+                tomoname = tomo.getFileName()
+                segm.setTomoName(tomoname)
+
+                # Append to set:
+                segmSetBin.append(segm)
+
+            self._defineOutputs(outputSegmentationSetBinned=segmSetBin)
+            self._defineSourceRelation(self.inputTomograms, segmSetBin)
 
 
     # --------------------------- DEFINE info functions ---------------------- # TODO

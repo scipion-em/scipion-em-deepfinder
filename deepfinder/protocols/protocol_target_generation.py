@@ -30,7 +30,6 @@ from pyworkflow.utils.properties import Message
 
 from pwem.protocols import EMProtocol
 
-from tomo.protocols import ProtTomoPicking
 from tomo.objects import Coordinate3D, Tomogram
 
 from deepfinder import Plugin

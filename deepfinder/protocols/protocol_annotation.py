@@ -32,7 +32,6 @@ from tomo.objects import Coordinate3D, Tomogram
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
-from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
 
 import os
 
@@ -41,79 +40,14 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class DeepFinderPrefixHelloWorld(Protocol):
-    """ This protocol will print hello world in the console
-     IMPORTANT: Classes names should be unique, better prefix them"""
-    _label = 'Hello world'
-
-    # -------------------------- DEFINE param functions ----------------------
-    def _defineParams(self, form):
-        """ Define the input parameters that will be used.
-        Params:
-            form: this is the form to be populated with sections and params.
-        """
-        # You need a params to belong to a section:
-        form.addSection(label=Message.LABEL_INPUT)
-        form.addParam('message', params.StringParam,
-                      default='Hello world!',
-                      label='Message', important=True,
-                      help='What will be printed in the console.')
-
-        form.addParam('times', params.IntParam,
-                      default=10,
-                      label='Times', important=True,
-                      help='Times the message will be printed.')
-
-        form.addParam('previousCount', params.IntParam,
-                      default=0,
-                      allowsNull=True,
-                      label='Previous count',
-                      help='Previous count of printed messages',
-                      allowsPointers=True)
-    # --------------------------- STEPS functions ------------------------------
-    def _insertAllSteps(self):
-        # Insert processing steps
-        self._insertFunctionStep('greetingsStep')
-        self._insertFunctionStep('createOutputStep')
-
-    def greetingsStep(self):
-        # say what the parameter says!!
-
-        for time in range(0, self.times.get()):
-            print(self.message)
-
-    def createOutputStep(self):
-        # register how many times the message has been printed
-        # Now count will be an accumulated value
-        timesPrinted = Integer(self.times.get() + self.previousCount.get())
-        self._defineOutputs(count=timesPrinted)
-
-    # --------------------------- INFO functions -----------------------------------
-    def _summary(self):
-        """ Summarize what the protocol has done"""
-        summary = []
-
-        if self.isFinished():
-
-            summary.append("This protocol has printed *%s* %i times." % (self.message, self.times))
-        return summary
-
-    def _methods(self):
-        methods = []
-
-        if self.isFinished():
-            methods.append("%s has been printed in this run %i times." % (self.message, self.times))
-            if self.previousCount.hasPointer():
-                methods.append("Accumulated count from previous runs were %i."
-                               " In total, %s messages has been printed."
-                               % (self.previousCount, self.count))
-        return methods
-
-
 class DeepFinderAnnotations(ProtTomoPicking):
     """This protocol allows you to annotate macromolecules in your tomograms, using a visual tool."""
 
-    _label = 'annotations'
+    _label = 'annotate'
+
+    def __init__(self, **args):
+        ProtTomoPicking.__init__(self, **args)
+        self.objl = []
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -130,7 +64,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
     # --------------------------- STEPS functions -----------------------------
     def launchAnnotationStep(self):
 
-        # This generates 1 objl.xml file per tomogram and stores it in TMP:
+        # This generates 1 objl.xml file per tomogram and stores it in EXTRA:
         for tomo in self.inputTomograms.get().iterItems():
             # Generate objl filename (output):
             fname_tomo = os.path.splitext( tomo.getFileName() )
@@ -140,7 +74,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
             # Launch annotation GUI passing the tomogram file name
             deepfinder_args = '-t ' + tomo.getFileName()
             deepfinder_args += ' -o ' + os.path.abspath(os.path.join(self._getExtraPath(), fname_objl))
-            Plugin.runDeepFinder(self, 'annotation', deepfinder_args)
+            Plugin.runDeepFinder(self, 'annotate', deepfinder_args)
 
 
 
@@ -162,6 +96,14 @@ class DeepFinderAnnotations(ProtTomoPicking):
             objl.extend(objl_tomo)
 
         lbl_list = cv.objl_get_labels(objl)  # get unique class labels
+        self.objl = objl  # store as class attribute for _summary
+
+        # Test summary string:
+        lbl_list = cv.objl_get_labels(self.objl)
+        print(str(len(lbl_list)) + ' classes have been annotated.')
+        for lbl in lbl_list:
+            objl_class = cv.objl_get_class(self.objl, lbl)
+            print('Class ' + str(lbl) + ': ' + str(len(objl_class)) + ' objects')
 
         # For each class, iterate over all object lists (1 per tomo) and store coordinates
         # in SetOfCoordinates3D (1 per class)
@@ -207,24 +149,17 @@ class DeepFinderAnnotations(ProtTomoPicking):
             outputset[1].setStreamState(Set.STREAM_CLOSED)
         self._store()
 
-    # --------------------------- DEFINE info functions ---------------------- # TODO
-    def getMethods(self, output):
-        msg = 'User picked %d particles ' % output.getSize()
-        return msg
 
-    def _methods(self):
-        methodsMsgs = []
-        if self.inputTomograms is None:
-            return ['Input tomogram not available yet.']
 
-        methodsMsgs.append("Input tomograms imported of dims %s." % (
-            str(self.inputTomograms.get().getDim())))
+    # --------------------------- DEFINE info functions ----------------------
+    def _summary(self):
+        """ Summarize what the protocol has done"""
+        summary = []
+        if self.isFinished():
+            lbl_list = cv.objl_get_labels(self.objl)
+            summary.append(str(len(lbl_list))+' classes have been annotated.')
+            for lbl in lbl_list:
+                objl_class = cv.objl_get_class(self.objl, lbl)
+                summary.append('Class '+str(lbl)+': '+str(len(objl_class))+' object(s)')
 
-        if self.getOutputsSize() >= 1:
-            for key, output in self.iterOutputAttributes():
-                msg = self.getMethods(output)
-                methodsMsgs.append("%s: %s" % (self.getObjectTag(output), msg))
-        else:
-            methodsMsgs.append(Message.TEXT_NO_OUTPUT_CO)
-
-        return methodsMsgs
+        return summary
