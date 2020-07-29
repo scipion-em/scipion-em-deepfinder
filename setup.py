@@ -10,6 +10,7 @@ from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
+from deepfinder import __version__
 
 here = path.abspath(path.dirname(__file__))
 
@@ -25,7 +26,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='scipion-em-deepfinder',  # Required
-    version='0.1',  # Required
+    version=__version__,  # Required
     description='Deepfinder plugin for scipion.',  # Required
     long_description=long_description,  # Optional
     url='https://github.com/scipion-em/scipion-em-deepfinder',  # Optional
