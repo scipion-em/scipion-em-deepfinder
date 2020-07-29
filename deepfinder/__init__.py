@@ -27,7 +27,7 @@
 import pwem
 
 from .constants import *
-
+__version__ = '3.0.0a1'
 _logo = "icon.png"
 _references = ['EMMANUEL2020']
 
