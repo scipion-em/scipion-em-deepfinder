@@ -51,7 +51,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
     def __init__(self, **args):
         ProtTomoPicking.__init__(self, **args)
         self._noAnnotations = Boolean(True)
-        self.objl = []
+        self.annotationSummary = String()
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -60,20 +60,20 @@ class DeepFinderAnnotations(ProtTomoPicking):
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         # Launch Boxing GUI
-        self._insertFunctionStep('launchAnnotationStep')
+        for tomo in self.inputTomograms.get().iterItems():
+            self._insertFunctionStep('launchAnnotationStep', tomo)
         self._insertFunctionStep('createOutputStep')
 
     # --------------------------- STEPS functions -----------------------------
-    def launchAnnotationStep(self):
+    def launchAnnotationStep(self, tomo):
         # This generates 1 objl.xml file per tomogram and stores it in EXTRA:
-        for tomo in self.inputTomograms.get().iterItems():
-            # Generate objl filename (output):
-            fname_objl = 'objl_annot_' + removeBaseExt(tomo.getFileName()) + '.xml'
+        # Generate objl filename (output):
+        fname_objl = 'objl_annot_' + removeBaseExt(tomo.getFileName()) + '.xml'
 
-            # Launch annotation GUI passing the tomogram file name
-            deepfinder_args = ' -t %s ' % abspath(tomo.getFileName())
-            deepfinder_args += '-o %s' % abspath(os.path.join(self._getExtraPath(), fname_objl))
-            Plugin.runDeepFinder(self, 'annotateJJ', deepfinder_args)
+        # Launch annotation GUI passing the tomogram file name
+        deepfinder_args = ' -t %s ' % abspath(tomo.getFileName())
+        deepfinder_args += '-o %s' % abspath(os.path.join(self._getExtraPath(), fname_objl))
+        Plugin.runDeepFinder(self, 'annotateJJ', deepfinder_args)
 
     def createOutputStep(self):
         if glob.glob(self._getExtraPath('*.xml')):
@@ -94,8 +94,6 @@ class DeepFinderAnnotations(ProtTomoPicking):
                 objlReadResults.append(objl_tomo)
                 objl.extend(objl_tomo)
 
-            # self.objl = objl  # store as class attribute for _summary
-
             # For each class, iterate over all object lists (1 per tomo) and store coordinates
             # in SetOfCoordinates3D (1 per class)
             # Remark: only 1 setOfCoordinates3D can exist at a time, else:
@@ -104,18 +102,17 @@ class DeepFinderAnnotations(ProtTomoPicking):
             coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
             coordCounter = 0
             lbl_list = cv.objl_get_labels(objl)
+            nClasses = len(lbl_list)
+            annotationSummary = '%i classes have been annotated.' % nClasses
 
             for lbl in lbl_list:
                 objl_class = cv.objl_get_class(objl, lbl)
                 lblStr = str(lbl)
-                print('Class ' + lblStr + ': ' + str(len(objl_class)) + ' objects')
+                msg = '\nClass %s: %i object(s)' % (lblStr, len(objl_class))
+                annotationSummary += msg
+                print(msg)
 
                 for tomoInd, tomo in enumerate(setTomograms.iterItems()):
-                    # # Get objl filename:
-                    # fname_objl = 'objl_annot_' + removeBaseExt(tomo.getFileName()) + '.xml'
-                    #
-                    # # Read objl:
-                    # objl_tomo = cv.objl_read(abspath(self._getExtraPath(fname_objl)))
                     objl_class = cv.objl_get_class(objlReadResults[tomoInd - 1], lbl)
                     for idx in range(len(objl_class)):
                         x = objl_class[idx]['x']
@@ -126,39 +123,25 @@ class DeepFinderAnnotations(ProtTomoPicking):
                         coord.setObjId(coordCounter + 1)
                         coord.setPosition(x, y, z)
                         coord.setVolume(tomo)
-                        coord.setVolId(tomoInd)
+                        coord.setVolId(tomoInd + 1)
                         coord._dfLabel = String(lblStr)
 
                         coord3DSet.append(coord)
                         coordCounter += 1
 
-                # Link to output:
-                # name = 'outputCoordinates3Dclass'+str(lbl)
-                # args = {}
-                # coord3DSet.setStreamState(Set.STREAM_OPEN)
-                # args[name] = coord3DSet
-
                 self._defineOutputs(outputCoordinates=coord3DSet)
                 self._defineSourceRelation(setTomograms, coord3DSet)
 
-            self.objl = objl
-
-            # I (emoebel) don't know what this is for, but is apparently necessary (copied from Estrella's XmippProtCCroi)
-            # for outputset in self._iterOutputsNew():
-            #     outputset[1].setStreamState(Set.STRE
-            #     AM_CLOSED)
-            self._store(self.objl, self._noAnnotations)
+            self.annotationSummary.set(annotationSummary)
+            self._store(self.annotationSummary, self._noAnnotations)
 
     # --------------------------- DEFINE info functions ----------------------
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []
         if self.isFinished():
-            lbl_list = cv.objl_get_labels(self.objl)
-            summary.append(str(len(lbl_list))+' classes have been annotated.')
-            for lbl in lbl_list:
-                objl_class = cv.objl_get_class(self.objl, lbl)
-                summary.append('Class ' + str(lbl)+': '+str(len(objl_class))+' object(s)')
+            if self.annotationSummary.get():
+                summary.append(self.annotationSummary.get())
 
             if self._noAnnotations.get():
                 summary.append('NO ANNOTATIONS WERE TAKEN.')

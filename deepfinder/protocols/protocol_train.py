@@ -40,6 +40,7 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
+
 class DeepFinderTrain(Protocol, ProtDeepFinderBase):
     """ This protocol launches the training procedure """
     _label = 'train'
