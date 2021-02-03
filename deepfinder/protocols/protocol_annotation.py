@@ -35,8 +35,6 @@ from tomo.objects import Coordinate3D
 from deepfinder import Plugin
 import deepfinder.convert as cv
 
-import os
-
 """
 Describe your python module here:
 This module will provide the traditional Hello world example
@@ -72,7 +70,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
         # Launch annotation GUI passing the tomogram file name
         deepfinder_args = ' -t %s ' % abspath(tomo.getFileName())
-        deepfinder_args += '-o %s' % abspath(os.path.join(self._getExtraPath(), fname_objl))
+        deepfinder_args += '-o %s' % abspath(self._getExtraPath(fname_objl))
         Plugin.runDeepFinder(self, 'annotateJJ', deepfinder_args)
 
     def createOutputStep(self):

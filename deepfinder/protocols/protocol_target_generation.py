@@ -26,22 +26,17 @@
 # **************************************************************************
 from os.path import abspath
 
-from pyworkflow.object import String
 from pyworkflow.protocol import params, PointerParam
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
 
 from pwem.protocols import EMProtocol
 
-from tomo.objects import Coordinate3D, Tomogram
+from tomo.objects import TomoMask
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
-# from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
-
 from deepfinder.protocols import ProtDeepFinderBase
-
-import os
 
 """
 Describe your python module here:
@@ -55,7 +50,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
 
     def __init__(self, **args):
         EMProtocol.__init__(self, **args)
-        self.tomoname_list = []
         self.targetname_list = []
         self.tomoSet = None
         self.coord3DSet = None
@@ -96,17 +90,8 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
         # Then, convert the input setOfCoordinates3D to objl
         # one class/setOfCoordinate3D. Class labels are reassigned here, and may not correspond to the label
         # from annotation step.
-        objl = []
-        for tomo in self.tomoSet:
-            tomoId = tomo.getObjId()
-            for coord in self.coord3DSet.iterCoordinates(volume=tomoId):
-                x = coord.getX()
-                y = coord.getY()
-                z = coord.getZ()
-                lbl = coord._dfLabel
-                cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tomoId)
+        objl = self._getObjlFromInputCoordinates(self.tomoSet, self.coord3DSet)
 
-        # --------------------------------------------------------------------------------------------------------------
         # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
         param = cv.ParamsGenTarget()
         # Set strategy:
@@ -124,7 +109,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
         for tidx, tomo in enumerate(self.tomoSet):
             # Save objl to tmp folder:
             objl_tomo = cv.objl_get_tomo(objl, tidx)
-            fname_objl = abspath(os.path.join(self._getExtraPath(), 'objl.xml'))
+            fname_objl = abspath(self._getExtraPath('objl.xml'))
             cv.objl_write(objl_tomo, fname_objl)
 
             param.path_objl = fname_objl
@@ -148,20 +133,20 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
 
     def createOutputStep(self):
 
-        targetSet = self._createSetOfTomograms()
+        targetSet = self._createSetOfTomoMasks()
         targetSet.copyInfo(self.tomoSet)
         targetSet.setName('sphere target set')
 
         for tomo, targetname in zip(self.tomoSet, self.targetname_list):
 
             # Import generated target from tmp folder and and store into segmentation object:
-            target = Tomogram()
+            target = TomoMask()
             target.cleanObjId()
             target.copyInfo(tomo)
             target.setFileName(targetname)
 
             # Link to origin tomogram:
-            target._tomoReference = String(tomo.getFileName())
+            target.setReferenceTomogram(tomo.getFileName())
 
             targetSet.append(target)
 
