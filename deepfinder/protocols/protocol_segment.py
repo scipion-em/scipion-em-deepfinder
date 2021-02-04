@@ -60,11 +60,6 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
                       label="Neural network model", important=True,
                       help='Select a trained DeepFinder neural network.')
 
-        #form.addParam('Ncl', params.IntParam,
-        #              default=100,
-        #              label='Number of classes', important=True,
-        #              help='Number of classes, background included')
-
         form.addParam('psize', params.IntParam,
                       default=100,
                       label='Patch size', important=True,

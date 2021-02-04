@@ -41,6 +41,7 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
+
 class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol analyses segmentation maps and outputs particle coordinates and class."""
 
