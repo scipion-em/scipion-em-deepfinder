@@ -32,7 +32,7 @@ from pyworkflow.utils.properties import Message
 
 from pwem.protocols import EMProtocol
 
-from tomo.objects import TomoMask
+from tomo.objects import TomoMask, SetOfTomoMasks
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
@@ -132,8 +132,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
             Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
     def createOutputStep(self):
-
-        targetSet = self._createSetOfTomoMasks()
+        targetSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
         targetSet.copyInfo(self.tomoSet)
         targetSet.setName('sphere target set')
 
