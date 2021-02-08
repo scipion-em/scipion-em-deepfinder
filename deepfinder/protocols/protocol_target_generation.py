@@ -145,7 +145,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
             target.setFileName(targetname)
 
             # Link to origin tomogram:
-            target.setReferenceTomogram(tomo.getFileName())
+            target.setVolName(tomo.getFileName())
 
             targetSet.append(target)
 
