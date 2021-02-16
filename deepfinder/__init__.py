@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from os.path import join
 
 import pwem
 
@@ -71,7 +72,6 @@ class Plugin(pwem.Plugin):
     def defineBinaries(cls, env):
         cls.addDeepFinderPackage(env, DF_VERSION)
 
-
     @classmethod
     def addDeepFinderPackage(cls, env, version):
 
@@ -88,7 +88,7 @@ class Plugin(pwem.Plugin):
         installationCmd += 'conda activate %s && ' % env_name
 
         # Install downloaded code
-        installationCmd += 'pip install -r requirements.txt && ' # for GPU usage should be requirements_gpu.txt
+        installationCmd += 'pip install -r requirements.txt && '  # for GPU usage should be requirements_gpu.txt
 
         # Flag installation finished
         installationCmd += 'touch %s' % DF_INSTALLED

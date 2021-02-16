@@ -41,6 +41,7 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
+
 class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol analyses segmentation maps and outputs particle coordinates and class."""
 
@@ -51,7 +52,7 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
         form.addSection(label=Message.LABEL_INPUT)
 
         form.addParam('inputSegmentations', PointerParam,
-                      pointerClass='SetOfDeepFinderSegmentations',
+                      pointerClass='SetOfTomograms',
                       label="Segmentation maps", important=True,
                       help='Please select the segmentation maps you would like to analyze.')
 
@@ -59,7 +60,6 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
                       default=5,
                       label='Clustering radius', important=True,
                       help='Should correspond to average radius of target objects (in voxels)')
-
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -131,7 +131,7 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
                     coord.setPosition(x, y, z)
                     coord.setScore(score)
                     coord.setVolume(segm)
-                    coord.setVolName(segm.getFileName())
+                    # coord.setVolName(segm.getFileName())
                     coord3DSet.append(coord)
 
             # Link to output:

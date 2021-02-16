@@ -24,46 +24,45 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from tomo.objects import Coordinate3D, SetOfCoordinates3D
+from tomo.objects import Coordinate3D, SetOfCoordinates3D, Tomogram
 import pyworkflow.object as pwobj
 from pwem.objects.data import EMObject, Volume, SetOfVolumes
 
 
-class DeepFinderSegmentation(Volume):
-    """Class for storing tomogram segmentation maps. A segmentation should always be linked to its origin tomogram."""
-    def __init__(self, **kwargs):
-        Volume.__init__(self, **kwargs)
-        self._acquisition = None
-        self._tsId = pwobj.String(kwargs.get('tsId', None))
+# class DeepFinderSegmentation(Tomogram):
+#     """Class for storing tomogram segmentation maps. A segmentation should always be linked to its origin tomogram."""
+#     def __init__(self, **kwargs):
+#         Tomogram.__init__(self, **kwargs)
+#         self._acquisition = None
+#         self._tsId = pwobj.String(kwargs.get('tsId', None))
+#
+#         self._tomoPointer = pwobj.Pointer(objDoStore=False)
+#         self._tomoId = pwobj.Integer()
+#         self._tomoName = pwobj.String()
+#
+#     def getTomogram(self): # does not work, similar problem to Coordinate3D.getVolume
+#         # FIXME: Update method __getitem__ and iterItems (already avalailbe in SetOfCoordinates3D and SetOfMeshes)
+#         return self._tomoPointer.get()
+#
+#     def setTomogram(self, tomo):
+#         self._tomoPointer.set(tomo)
+#         self._tomoId.set(tomo.getObjId())
+#         self._tomoName.set(tomo.getFileName())
+#         self.setSamplingRate(tomo.getSamplingRate())
+#
+#     def setTomoName(self, tomoName):
+#         self._tomoName.set(tomoName)
+#
+#     def getTomoName(self):
+#         return self._tomoName.get()
 
-        self._tomoPointer = pwobj.Pointer(objDoStore=False)
-        self._tomoId = pwobj.Integer()
-        self._tomoName = pwobj.String()
 
-    def getTomogram(self): # does not work, similar problem to Coordinate3D.getVolume
-        # FIXME: Update method __getitem__ and iterItems (already avalailbe in SetOfCoordinates3D and SetOfMeshes)
-        return self._tomoPointer.get()
-
-    def setTomogram(self, tomo):
-        self._tomoPointer.set(tomo)
-        self._tomoId.set(tomo.getObjId())
-        self._tomoName.set(tomo.getFileName())
-
-        self.setSamplingRate(tomo.getSamplingRate())
-
-    def setTomoName(self, tomoName):
-        self._tomoName.set(tomoName)
-
-    def getTomoName(self):
-        return self._tomoName.get()
-
-
-class SetOfDeepFinderSegmentations(SetOfVolumes):
-    ITEM_TYPE = DeepFinderSegmentation
-    EXPOSE_ITEMS = True
-
-    def __init__(self, *args, **kwargs):
-        SetOfVolumes.__init__(self, **kwargs)
+# class SetOfDeepFinderSegmentations(SetOfVolumes):
+#     ITEM_TYPE = DeepFinderSegmentation
+#     EXPOSE_ITEMS = True
+#
+#     def __init__(self, *args, **kwargs):
+#         SetOfVolumes.__init__(self, **kwargs)
 
 
 class DeepFinderNet(EMObject):

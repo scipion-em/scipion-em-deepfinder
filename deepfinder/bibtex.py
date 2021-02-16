@@ -28,16 +28,15 @@
 """
 @article{EMMANUEL2020,
 title = "3D ConvNet improves macromolecule localization in 3Dcellular cryo-electron tomograms",
-journal = "...",
-volume = "...",
+journal = ".",
+volume = ".",
 number = ".",
 pages = ".",
 year = ".",
 issn = ".",
-doi = ".",
-url = "http://www.url",
-author = "Emmanuel Moebel, Antonio Martinez, Damien Larivière, Julio Ortiz, Wolfgang Baumeister, et al..",
-keywords = ".",
+doi = " http://doi.org/10.1101/2020.04.15.042747",
+url = "http://www.biorxiv.org/content/10.1101/2020.04.15.042747v1",
+author = "Emmanuel Moebel, Antonio Martinez, Damien Larivière, Julio Ortiz, Wolfgang Baumeister, Charles Kervrann",
 }
 
 """

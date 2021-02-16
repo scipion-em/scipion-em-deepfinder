@@ -31,4 +31,5 @@ from .protocol_utilities import DeepFinderDisplay
 from .protocol_train import DeepFinderTrain
 from .protocol_segment import DeepFinderSegment
 from .protocol_cluster import DeepFinderCluster
+from .protocol_load_training_model import ProtDeepFinderLoadTrainingModel
 

@@ -24,7 +24,10 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
+from os.path import abspath
+
+from pwem.protocols import EMProtocol
+from pyworkflow.protocol import params, PointerParam
 from pyworkflow.utils.properties import Message
 
 from deepfinder import Plugin
@@ -33,19 +36,18 @@ from deepfinder.objects import DeepFinderNet
 
 from deepfinder.protocols import ProtDeepFinderBase
 
-import os
-
 """
 Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class DeepFinderTrain(Protocol, ProtDeepFinderBase):
+
+class DeepFinderTrain(EMProtocol, ProtDeepFinderBase):
     """ This protocol launches the training procedure """
     _label = 'train'
 
     def __init__(self, **args):
-        Protocol.__init__(self, **args)
+        EMProtocol.__init__(self, **args)
         self.nClass = None
 
     # -------------------------- DEFINE param functions ----------------------
@@ -58,55 +60,64 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         form.addSection(label=Message.LABEL_INPUT)
 
         form.addParam('targets', PointerParam,
-                      pointerClass='SetOfDeepFinderSegmentations',
-                      label="Segmentation examples", important=True,
-                      help='Training dataset. Please select here your targets. The corresponding tomogram will be loaded automatically.')
+                      pointerClass='SetOfTomoMasks',
+                      label="Segmented targets",
+                      important=True,
+                      help='Training dataset. Please select here your targets. '
+                           'The corresponding tomogram will be loaded automatically.')
 
-        #form.addParam('targets', params.MultiPointerParam,
-        #              pointerClass='DeepFinderSegmentation',
-        #              label="Segmentation examples", important=True,
-        #              help='Training dataset. Please select here your targets. The corresponding tomogram will be loaded automatically.')
+        form.addParam('coordTrain', params.PointerParam,
+                      label="Training coordinates",
+                      pointerClass='SetOfCoordinates3D',
+                      help='Select coordinate set for training.')
 
-        form.addParam('coordTrain', params.MultiPointerParam, label="Training coordinates",
-                      pointerClass='SetOfCoordinates3D', help='Select coordinate sets for training.')
+        form.addParam('coordValid', params.PointerParam,
+                      label="Validation coordinates",
+                      pointerClass='SetOfCoordinates3D',
+                      help='Select coordinate set for validation.')
 
-        form.addParam('coordValid', params.MultiPointerParam, label="Validation coordinates",
-                      pointerClass='SetOfCoordinates3D', help='Select coordinate sets for validation.')
-
-        form.addParam('psize', params.IntParam,
-                      default=56,
-                      choices=list(range(24,65,4)),
-                      label='Patch size', important=True,
+        form.addSection(label='Training Parameters')
+        form.addParam('psize', params.EnumParam,
+                      default=8,  # 56: 8th element in [24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64]
+                      choices=list(range(24, 65, 4)),
+                      label='Patch size',
+                      important=True,
                       help='')
 
         form.addParam('bsize', params.IntParam,
                       default=25,
-                      label='Batch size', important=True,
+                      label='Batch size',
+                      important=True,
                       help='')
 
         form.addParam('epochs', params.IntParam,
                       default=100,
-                      label='Number of epochs', important=True,
+                      label='Number of epochs',
+                      important=True,
                       help='')
 
         form.addParam('stepsPerE', params.IntParam,
                       default=100,
-                      label='Steps per epoch', important=True,
+                      label='Steps per epoch',
+                      important=True,
                       help='')
 
         form.addParam('stepsPerV', params.IntParam,
                       default=10,
-                      label='Steps per validation', important=True,
+                      label='Steps per validation',
+                      important=True,
                       help='')
 
         form.addParam('bootstrap', params.BooleanParam,
                       default=True,
-                      label='Bootstrap', important=True,
+                      label='Bootstrap',
+                      important=True,
                       help='')
 
         form.addParam('rndShift', params.IntParam,
                       default=13,
-                      label='Random shift', important=True,
+                      label='Random shift',
+                      important=True,
                       help='')
 
     # --------------------------- STEPS functions ------------------------------
@@ -119,30 +130,28 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         # Get paths to tomograms and corresponding targets:
         path_tomo = []
         path_segm = []
-        #for pointer in self.targets:
-        #    segm = pointer.get()
         for segm in self.targets.get().iterItems():
             fname_segm = segm.getFileName()
-            fname_tomo = segm.getTomoName()
+            fname_tomo = segm.getReferenceTomogram()
             path_tomo.append(fname_tomo)
             path_segm.append(fname_segm)
 
         # Get objl_train and objl_valid and save to temp folder:
-        objl_train = self._getObjlFromInputCoordinates(self.coordTrain, path_tomo)
-        objl_valid = self._getObjlFromInputCoordinates(self.coordValid, path_tomo)
+        objl_train = self._getObjlFromInputCoordinates(self.targets.get(), self.coordTrain.get())
+        objl_valid = self._getObjlFromInputCoordinates(self.targets.get(), self.coordValid.get())
 
-        fname_objl_train = os.path.abspath(os.path.join(self._getTmpPath(), 'objl_train.xml'))
+        fname_objl_train = abspath(self._getExtraPath('objl_train.xml'))
         cv.objl_write(objl_train, fname_objl_train)
-        fname_objl_valid = os.path.abspath(os.path.join(self._getTmpPath(), 'objl_valid.xml'))
+        fname_objl_valid = abspath(self._getExtraPath('objl_valid.xml'))
         cv.objl_write(objl_valid, fname_objl_valid)
 
         # Get number of classes from objl, and store as attribute (useful for output step):
-        self.nClass = len(cv.objl_get_labels(objl_train)) + 1 # (+1 for background class)
+        self.nClass = len(cv.objl_get_labels(objl_train)) + 1  # (+1 for background class)
 
         # Save parameters to xml file:
         params = cv.ParamsTrain()
 
-        params.path_out = os.path.abspath(self._getExtraPath())+'/'
+        params.path_out = abspath(self._getExtraPath())+'/'
         params.path_tomo = path_tomo
         params.path_target = path_segm
         params.path_objl_train = fname_objl_train
@@ -153,11 +162,11 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
         params.nepochs = self.epochs.get()
         params.steps_per_e = self.stepsPerE.get()
         params.steps_per_v = self.stepsPerV.get()
-        params.flag_direct_read = False # in current deepfinder version only works with tomos/targets stored as h5
+        params.flag_direct_read = False  # in current deepfinder version only works with tomos/targets stored as h5
         params.flag_bootstrap = self.bootstrap.get()
         params.rnd_shift = self.rndShift.get()
 
-        fname_params = os.path.abspath(os.path.join(self._getTmpPath(), 'params_train.xml'))
+        fname_params = abspath(self._getExtraPath('params_train.xml'))
         params.write(fname_params)
 
         # Launch DeepFinder training:
@@ -166,7 +175,7 @@ class DeepFinderTrain(Protocol, ProtDeepFinderBase):
 
     def createOutputStep(self):
         netWeights = DeepFinderNet()
-        fname = os.path.abspath(os.path.join(self._getExtraPath(), 'net_weights_FINAL.h5'))
+        fname = abspath(self._getExtraPath('net_weights_FINAL.h5'))
         netWeights.setPath(fname)
         netWeights.setNbOfClasses(self.nClass)
         self._defineOutputs(netWeights=netWeights)

@@ -32,7 +32,7 @@ from tomo.objects import Coordinate3D, Tomogram
 from deepfinder.protocols import ProtDeepFinderBase
 from deepfinder import Plugin
 import deepfinder.convert as cv
-from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
+# from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
 
 import os
 

@@ -41,26 +41,26 @@ class ProtDeepFinderBase(ProtTomoBase):
         coord3DSet.setPrecedents(volSet)
         return coord3DSet
 
-    def _getObjlFromInputCoordinates(self, inputCoordinates, tomoname_list):
+    @staticmethod
+    def _getObjlFromInputCoordinates(tomoSet, coord3DSet):
         """Get all objects of specified class.
-
         Args:
             inputCoordinates (MultiPointerParam)
             tomoname_list (list of strings): ['/path/to/tomo1.mrc', '/path/to/tomo2.mrc', '/path/to/tomo3.mrc']
         Returns:
             list of dict: deep finder object list (contains particle infos)
         """
-        l = 1  # one class/setOfCoordinate3D. Class labels are reassigned here, and may not correspond to the label from annotation step.
         objl = []
-        for pointer in inputCoordinates:
-            coord3DSet = pointer.get()
-            for coord in coord3DSet.iterItems():
+        for tomo in tomoSet:
+            tomoId = tomo.getObjId()
+            for coord in coord3DSet.iterCoordinates(volume=tomoId):
                 x = coord.getX()
                 y = coord.getY()
                 z = coord.getZ()
-                lbl = l
-                tidx = tomoname_list.index(coord.getVolName())
-                cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tidx)
-            l += 1
+                lbl = coord._dfLabel
+                cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tomoId)
+
         return objl
+
+
 
