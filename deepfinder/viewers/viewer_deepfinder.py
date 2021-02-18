@@ -1,6 +1,7 @@
 import pyworkflow.viewer as pwviewer
 import tomo.objects
-from deepfinder.protocols import DeepFinderSegment
+from deepfinder.protocols import DeepFinderSegment, DeepFinderGenerateTrainingTargetsSpheres
+from tomo.protocols import ProtImportTomograms
 
 class DeepFinderViewer(pwviewer.Viewer):
     _label = 'Ortho-slice volume explorer'
@@ -9,6 +10,8 @@ class DeepFinderViewer(pwviewer.Viewer):
         tomo.objects.TomoMask,
         tomo.objects.SetOfTomograms,
         tomo.objects.SetOfTomoMasks,
+        ProtImportTomograms,
+        DeepFinderGenerateTrainingTargetsSpheres,
         DeepFinderSegment
     ]
 
