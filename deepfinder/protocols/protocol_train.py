@@ -78,47 +78,47 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase):
 
         form.addSection(label='Training Parameters')
         form.addParam('psize', params.EnumParam,
-                      default=8,  # 56: 8th element in [24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64]
-                      choices=list(range(24, 65, 4)),
+                      default=1,  # 40: 1st element in [40, 44, 48, 52, 56, 60, 64]
+                      choices=list(range(40, 65, 4)),
                       label='Patch size',
                       important=True,
-                      help='')
+                      help='Size of patches loaded into memory for training.')
 
         form.addParam('bsize', params.IntParam,
                       default=25,
                       label='Batch size',
                       important=True,
-                      help='')
+                      help='Number of patches used to compute average loss.')
 
         form.addParam('epochs', params.IntParam,
                       default=100,
                       label='Number of epochs',
                       important=True,
-                      help='')
+                      help='At the end of each epoch, evaluation on validation set is performed (useful to check if network overfits).')
 
         form.addParam('stepsPerE', params.IntParam,
                       default=100,
                       label='Steps per epoch',
                       important=True,
-                      help='')
+                      help='Number of batches trained on per epoch.')
 
         form.addParam('stepsPerV', params.IntParam,
                       default=10,
                       label='Steps per validation',
                       important=True,
-                      help='')
+                      help='Number of batches used for validation.')
 
         form.addParam('bootstrap', params.BooleanParam,
                       default=True,
                       label='Bootstrap',
                       important=True,
-                      help='')
+                      help='Can remain checked. Usefull when in presence of unbalanced classes.')
 
         form.addParam('rndShift', params.IntParam,
                       default=13,
                       label='Random shift',
                       important=True,
-                      help='')
+                      help='(in voxels) Applied to positions in object list when sampling patches. Enhances network robustness. Make sure that objects are still contained in patches when applying shift.')
 
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
