@@ -102,6 +102,18 @@ class Plugin(pwem.Plugin):
                        neededProgs=cls.getDependencies(),
                        default=True)
 
+    @classmethod
+    def getDeepFinderCmd(cls, program):
+        """ Composes a DeepFinder command for a given program. """
+
+        # Program to run
+        program = cls.getDeepFinderProgram(program)
+
+        # Command to run
+        cmd = program
+
+        return cmd
+
 
 
 
