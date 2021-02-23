@@ -109,8 +109,10 @@ class Plugin(pwem.Plugin):
         # Program to run
         program = cls.getDeepFinderProgram(program)
 
+        fullProgram = '%s %s && %s' % (cls.getCondaActivationCmd(), cls.getDeepFinderEnvActivation(), program)
+
         # Command to run
-        cmd = program
+        cmd = fullProgram
 
         return cmd
 
