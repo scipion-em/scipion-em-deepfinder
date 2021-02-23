@@ -14,10 +14,7 @@ class DeepFinderViewer(pwviewer.Viewer):
         Tomogram,
         TomoMask,
         SetOfTomograms,
-        SetOfTomoMasks,
-        #ProtImportTomograms,
-        #DeepFinderGenerateTrainingTargetsSpheres,
-        #DeepFinderSegment
+        SetOfTomoMasks
     ]
 
     def _visualize(self, obj, **kwargs):
@@ -25,45 +22,31 @@ class DeepFinderViewer(pwviewer.Viewer):
         view = []
         cls = type(obj)
 
-        # if issubclass(cls, tomo.objects.Tomogram):
-        #     view = DeepFinderTomoView(obj)
-        if issubclass(cls, SetOfTomograms) or issubclass(cls, Tomogram)\
-                or issubclass(cls, SetOfTomoMasks) or issubclass(cls, TomoMask):
+        if issubclass(cls, SetOfTomograms) or issubclass(cls, Tomogram):
             view = DeepFinderSetOfTomogramsView(obj)
-
-        # deepfinder_args = ''
-        # if self.tomogram.get() != None:
-        #     fname = self.tomogram.get().getFileName()
-        #     deepfinder_args += '-t ' + fname
-        # if self.segmentation.get() != None:
-        #     for seg in self.segmentation.get().iterItems():
-        #         fname = seg.getFileName()
-        #         deepfinder_args += ' -l ' + fname
-        #
-        #         fname_tomo = str(seg.getTomoName())
-        #         if fname_tomo != '':  # if a tomo is linked to segmentation, also display tomo
-        #             deepfinder_args += ' -t ' + fname_tomo
+        elif issubclass(cls, SetOfTomoMasks) or issubclass(cls, TomoMask):
+            view = DeepFinderSetOfTomoMasksView(obj)
 
         view._env = env
         return [view]
 
-# class DeepFinderTomoView(pwviewer.CommandView):
-#     """ Wrapper to visualize different type of objects with the DeepFinderDisplay """
-#
-#     def __init__(self, obj, **kwargs):
-#         fname = obj.getFileName()
-#         #deepfinder_args = '-t ' + fname
-#         #Plugin.runDeepFinder(self, 'display', deepfinder_args)
-#         pwviewer.CommandView.__init__(self, Plugin.getDeepFinderCmd('display') + ' -t' + fname)
 
 class DeepFinderSetOfTomogramsView(pwviewer.CommandView):
     """ Wrapper to visualize set of tomograms with DeepFinderDisplay """
 
     def __init__(self, set, **kwargs):
-        for item in set:
+        for item in set: # /!\ Can cause OOM if too many items
             fname = abspath(item.getFileName())
-            #deepfinder_args = '-t ' + fname
-            #Plugin.runDeepFinder(self, 'display', deepfinder_args) # /!\ Can cause OOM if too many items
             pwviewer.CommandView.__init__(self, Plugin.getDeepFinderCmd('display') + ' -t' + fname)
+
+
+class DeepFinderSetOfTomoMasksView(pwviewer.CommandView):
+    """ Wrapper to visualize set of TomoMasks with DeepFinderDisplay """
+
+    def __init__(self, set, **kwargs):
+        for item in set: # /!\ Can cause OOM if too many items
+            fn_mask = abspath(item.getFileName())
+            fn_tomo = abspath(item.getVolName())
+            pwviewer.CommandView.__init__(self, Plugin.getDeepFinderCmd('display') + ' -t' + fn_tomo + ' -l' + fn_mask)
 
 
