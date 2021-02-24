@@ -111,6 +111,9 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
             tomoSetSingle.append(tomo)
             objl_tomo = self._getObjlFromInputCoordinates(tomoSetSingle, self.inputCoordinates.get())
 
+            lbl_list = cv.objl_get_labels(objl_tomo)
+            print('eml------------protocol----> ' + str(lbl_list))
+
             fname_objl = abspath(self._getExtraPath('objl.xml'))
             cv.objl_write(objl_tomo, fname_objl)
 

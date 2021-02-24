@@ -24,10 +24,11 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-
+from tomo.objects import SetOfTomograms
 from tomo.protocols import ProtTomoBase
 import deepfinder.objects
 import deepfinder.convert as cv
+
 
 class ProtDeepFinderBase(ProtTomoBase):
     def _createSetOfDeepFinderSegmentations(self, suffix=''):
@@ -45,8 +46,8 @@ class ProtDeepFinderBase(ProtTomoBase):
     def _getObjlFromInputCoordinates(tomoSet, coord3DSet):
         """Get all objects of specified class.
         Args:
-            inputCoordinates (MultiPointerParam)
-            tomoname_list (list of strings): ['/path/to/tomo1.mrc', '/path/to/tomo2.mrc', '/path/to/tomo3.mrc']
+            tomoSet (SetOfTomograms)
+            coord3DSet (SetOfCoordinates3D)
         Returns:
             list of dict: deep finder object list (contains particle infos)
         """
@@ -57,10 +58,10 @@ class ProtDeepFinderBase(ProtTomoBase):
                 x = coord.getX()
                 y = coord.getY()
                 z = coord.getZ()
-                lbl = coord._dfLabel
+                lbl = int(str(coord._dfLabel))
+                print('eml-------------------------> lbl: ' + str(lbl))
                 cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tomoId)
 
         return objl
-
 
 

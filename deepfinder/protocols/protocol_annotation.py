@@ -71,7 +71,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
         # Launch annotation GUI passing the tomogram file name
         deepfinder_args = ' -t %s ' % abspath(tomo.getFileName())
         deepfinder_args += '-o %s' % abspath(self._getExtraPath(fname_objl))
-        Plugin.runDeepFinder(self, 'annotateJJ', deepfinder_args)
+        Plugin.runDeepFinder(self, 'annotate', deepfinder_args)
 
     def createOutputStep(self):
         if glob.glob(self._getExtraPath('*.xml')):
