@@ -31,19 +31,20 @@ from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
 
 from pwem.protocols import EMProtocol
-
-from tomo.objects import TomoMask, SetOfTomoMasks
+from tomo.protocols import ProtTomoBase
+from tomo.objects import TomoMask, SetOfTomoMasks, SetOfTomograms
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
+
 
 """
 Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
+class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
     """ This protocol generates segmentation maps from annotations. These segmentation maps will be used as targets
      to train DeepFinder """
     _label = 'generate sphere target'
@@ -87,6 +88,53 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase):
         self._insertFunctionStep('createOutputStep')
 
     def launchTargetGenerationStep(self):
+
+        self.tomoSet = self.inputCoordinates.get().getPrecedents()
+
+        # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
+        param = cv.ParamsGenTarget()
+        # Set strategy:
+        param.strategy = 'spheres'
+        # Set radius list:
+        radius_list_string = self.sphereRadii.get()
+        radius_list = [int(r) for r in radius_list_string.split(',')]
+        param.radius_list = radius_list
+        # Set optional volume for target initialization:
+        if self.initialVolume.get():  # TODO should be 1 initial vol per target
+            param.path_initial_vol = self.initialVolume.get().getFileName()
+
+        # --------------------------------------------------------------------------------------------------------------
+        # Now, set parameters specific to each tomogram:
+        for tidx, tomo in enumerate(self.tomoSet):
+            # Get objl for tomogram and save objl to extra folder:
+            tomoSetSingle = self._createSetOfTomograms()
+            tomoSetSingle.append(tomo)
+            objl_tomo = self._getObjlFromInputCoordinates(tomoSetSingle, self.inputCoordinates.get())
+
+            fname_objl = abspath(self._getExtraPath('objl.xml'))
+            cv.objl_write(objl_tomo, fname_objl)
+
+            param.path_objl = fname_objl
+
+            # Set tomogram size:
+            dimX, dimY, dimZ = tomo.getDimensions()
+            param.tomo_size = (dimZ, dimY, dimX)
+
+            # Set path to where write the generated target:
+            fname_target = self._getExtraPath('target_' + removeBaseExt(tomo.getFileName()) + '.mrc')
+            self.targetname_list.append(fname_target)
+            param.path_target = abspath(fname_target)
+
+            # Save the parameter file:
+            fname_params = abspath(self._getExtraPath('params_target_generation_%i.xml' % tidx))
+            param.write(fname_params)
+
+            # Launch DeepFinder target generation:
+            deepfinder_args = '-p ' + fname_params
+            Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
+
+
+    def launchTargetGenerationStep_OLD(self):
         # Then, convert the input setOfCoordinates3D to objl
         # one class/setOfCoordinate3D. Class labels are reassigned here, and may not correspond to the label
         # from annotation step.
