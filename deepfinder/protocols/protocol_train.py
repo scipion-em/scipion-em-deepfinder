@@ -35,14 +35,17 @@ import deepfinder.convert as cv
 from deepfinder.objects import DeepFinderNet
 
 from deepfinder.protocols import ProtDeepFinderBase
+from tomo.protocols import ProtTomoBase
+from tomo.objects import SetOfTomoMasks
 
 """
 Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
+PSIZE_CHOICES = list(range(40, 65, 4))
 
-class DeepFinderTrain(EMProtocol, ProtDeepFinderBase):
+class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
     """ This protocol launches the training procedure """
     _label = 'train'
 
@@ -132,7 +135,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase):
         path_segm = []
         for segm in self.targets.get().iterItems():
             fname_segm = segm.getFileName()
-            fname_tomo = segm.getReferenceTomogram()
+            fname_tomo = segm.getVolName()
             path_tomo.append(fname_tomo)
             path_segm.append(fname_segm)
 
@@ -157,7 +160,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase):
         params.path_objl_train = fname_objl_train
         params.path_objl_valid = fname_objl_valid
         params.Ncl = self.nClass
-        params.psize = self.psize.get()
+        params.psize = self._decodeContValue(getattr(self, 'psize').get())
         params.bsize = self.bsize.get()
         params.nepochs = self.epochs.get()
         params.steps_per_e = self.stepsPerE.get()
@@ -179,6 +182,104 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase):
         netWeights.setPath(fname)
         netWeights.setNbOfClasses(self.nClass)
         self._defineOutputs(netWeights=netWeights)
+
+    # --------------------------- UTILITY functions -------------------------------- #
+    @staticmethod
+    def _decodeContValue(idx):
+        """Decode the psize value and represent it as expected by DeepFinder"""
+        return PSIZE_CHOICES[idx]
+
+    @classmethod
+    def _getDeepFinderObjectsFromInput(self, tomoMaskSetTrain, tomoMaskSetValid, coord3DSet):
+        """Get all objects of specified class.
+        Args:
+            tomoMaskSetTrain (SetOfTomoMasks)
+            tomoMaskSetValid (SetOfTomoMasks)
+            coord3DSet (SetOfCoordinates3D)
+        Returns:
+            list of strings : path_tomos[]
+            list of strings : path_targets[]
+            list of dict : objl_train
+            list of dict : objl_valid
+        """
+        # Join the tomoMaskSets. 1st valid, then train. Order is important!
+        tomoMaskSetAll = self._joinSetsOfTomoMasks(tomoMaskSetValid, tomoMaskSetTrain)
+
+        # Get the file paths for tomos and targets (=tomoMasks)
+        path_tomos, path_targets = self._getPathListsFromTomoMaskSet(tomoMaskSetAll)
+
+        # Get deepfinder objl from coord3DSet:
+        objl_all = self._getObjlFromInputCoordinatesV2(tomoMaskSetAll, coord3DSet)
+
+        # Separate objl into objl_valid and objl_train:
+        Nvalid = len(tomoMaskSetValid.getPrecedents())
+        Ntrain = len(tomoMaskSetTrain.getPrecedents())
+
+        tidx_list_valid = list(range(Nvalid))
+        tidx_list_train = list(range(Nvalid, Nvalid+Ntrain))
+
+        objl_valid = []
+        for tidx in tidx_list_valid:
+            objl_valid.append(cv.objl_get_tomo(objl_all, tidx))
+
+        objl_train = []
+        for tidx in tidx_list_train:
+            objl_train.append(cv.objl_get_tomo(objl_all, tidx))
+
+        return path_tomos, path_targets, objl_train, objl_valid
+
+    @staticmethod
+    def _joinSetsOfTomoMasks(tomoMaskSet1, tomoMaskSet2):
+        """ Joins two tomoMaskSets.
+        Args:
+            tomoMaskSet1 (SetOfTomoMasks)
+            tomoMaskSet1 (SetOfTomoMasks)
+        Returns:
+            SetOfTomoMasks
+        """
+        tomoMaskSet = SetOfTomoMasks
+        for tomoMask in tomoMaskSet1:
+            tomoMaskSet.append(tomoMask)
+        for tomoMask in tomoMaskSet2:
+            tomoMaskSet.append(tomoMask)
+
+        return tomoMaskSet
+
+    @staticmethod
+    def _getPathListsFromTomoMaskSet(tomoMaskSet):
+        """ Gets the path lists needed by DeepFinder from protocol input.
+        Args:
+            tomoMaskSet (SetOfTomoMasks)
+        Returns:
+            list of strings : path_tomos[]
+            list of strings : path_targets[]
+        """
+        path_tomos = []
+        path_targets = []
+        for tomoMask in tomoMaskSet:
+            path_tomos.append(abspath(tomoMask.getVolName()))
+            path_targets.append(abspath(tomoMask.getFileName()))
+
+        return path_tomos, path_targets
+
+
+    # @staticmethod
+    # def _getSetOfTomosFromSetOfTomoMasks(tomoMaskSet):
+    #     """
+    #     Args:
+    #         tomoMasksSet (SetOfTomoMasks)
+    #     Returns:
+    #         SetOfTomograms
+    #     """
+    #     tomoSet = self._createSetOfTomograms()
+    #     for tomoMask in tomoMaskSet.iterItems():
+    #         fn_tomo = tomoMask.getVolName()
+    #         tomo = Tomogram(location=fn_tomo)
+    #         tomoSet.append(tomo)
+    #
+    #     return tomoSet
+
+
 
     # --------------------------- INFO functions ----------------------------------- # TODO
     def _summary(self):
