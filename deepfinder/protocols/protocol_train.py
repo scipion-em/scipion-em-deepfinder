@@ -62,22 +62,25 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         # You need a params to belong to a section:
         form.addSection(label=Message.LABEL_INPUT)
 
-        form.addParam('targets', PointerParam,
+        form.addParam('tomoMasksTrain', PointerParam,
                       pointerClass='SetOfTomoMasks',
-                      label="Segmented targets",
+                      label="Training TomoMasks",
                       important=True,
-                      help='Training dataset. Please select here your targets. '
-                           'The corresponding tomogram will be loaded automatically.')
+                      help='Training dataset. Please select here your TomoMasks. '
+                           'The corresponding tomograms will be loaded automatically.')
 
-        form.addParam('coordTrain', params.PointerParam,
-                      label="Training coordinates",
-                      pointerClass='SetOfCoordinates3D',
-                      help='Select coordinate set for training.')
+        form.addParam('tomoMasksValid', PointerParam,
+                      pointerClass='SetOfTomoMasks',
+                      label="Validation TomoMasks",
+                      important=True,
+                      help='Validation dataset. Please select here your TomoMasks. '
+                           'The corresponding tomograms will be loaded automatically.')
 
-        form.addParam('coordValid', params.PointerParam,
-                      label="Validation coordinates",
+        form.addParam('coord', params.PointerParam,
+                      label="Coordinates",
                       pointerClass='SetOfCoordinates3D',
-                      help='Select coordinate set for validation.')
+                      help='Select coordinate set.')
+
 
         form.addSection(label='Training Parameters')
         form.addParam('psize', params.EnumParam,
@@ -129,7 +132,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         self._insertFunctionStep('trainingStep')
         self._insertFunctionStep('createOutputStep')
 
-    def trainingStep(self):
+    def trainingStepOLD(self):
         # Get paths to tomograms and corresponding targets:
         path_tomo = []
         path_segm = []
@@ -175,6 +178,9 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         # Launch DeepFinder training:
         deepfinder_args = '-p ' + fname_params
         Plugin.runDeepFinder(self, 'train', deepfinder_args)
+
+    def trainingStep(self):
+        pass
 
     def createOutputStep(self):
         netWeights = DeepFinderNet()

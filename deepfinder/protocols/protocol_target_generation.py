@@ -91,6 +91,12 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
 
         self.tomoSet = self.inputCoordinates.get().getPrecedents()
 
+        ######
+        print('--------> tomoset size: '+str(len(self.tomoSet)))
+        for tomo in self.tomoSet:
+            print('------------------------> tomoid: ', str(tomo.getObjId()))
+        #####
+
         # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
         param = cv.ParamsGenTarget()
         # Set strategy:
@@ -110,9 +116,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
             tomoSetSingle = self._createSetOfTomograms()
             tomoSetSingle.append(tomo)
             objl_tomo = self._getObjlFromInputCoordinates(tomoSetSingle, self.inputCoordinates.get())
-
-            lbl_list = cv.objl_get_labels(objl_tomo)
-            print('eml------------protocol----> ' + str(lbl_list))
 
             fname_objl = abspath(self._getExtraPath('objl.xml'))
             cv.objl_write(objl_tomo, fname_objl)
