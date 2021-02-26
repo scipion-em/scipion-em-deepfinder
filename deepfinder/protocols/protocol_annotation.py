@@ -59,17 +59,17 @@ class DeepFinderAnnotations(ProtTomoPicking):
     def _insertAllSteps(self):
         # Launch Boxing GUI
         for tomo in self.inputTomograms.get().iterItems():
-            self._insertFunctionStep('launchAnnotationStep', tomo)
+            self._insertFunctionStep('launchAnnotationStep', tomo.getFileName())
         self._insertFunctionStep('createOutputStep')
 
     # --------------------------- STEPS functions -----------------------------
-    def launchAnnotationStep(self, tomo):
+    def launchAnnotationStep(self, tomoName):
         # This generates 1 objl.xml file per tomogram and stores it in EXTRA:
         # Generate objl filename (output):
-        fname_objl = 'objl_annot_' + removeBaseExt(tomo.getFileName()) + '.xml'
+        fname_objl = 'objl_annot_' + removeBaseExt(tomoName) + '.xml'
 
         # Launch annotation GUI passing the tomogram file name
-        deepfinder_args = ' -t %s ' % abspath(tomo.getFileName())
+        deepfinder_args = ' -t %s ' % abspath(tomoName)
         deepfinder_args += '-o %s' % abspath(self._getExtraPath(fname_objl))
         Plugin.runDeepFinder(self, 'annotate', deepfinder_args)
 

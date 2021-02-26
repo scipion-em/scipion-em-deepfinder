@@ -44,7 +44,7 @@ class ProtDeepFinderBase(ProtTomoBase):
         return coord3DSet
 
     @staticmethod
-    def _getObjlFromInputCoordinates(tomoSet, coord3DSet):
+    def _getObjlFromInputCoordinates(coord3DSet):
         """Get all objects of specified class.
         Args:
             tomoSet (SetOfTomograms)
@@ -53,7 +53,8 @@ class ProtDeepFinderBase(ProtTomoBase):
             list of dict: deep finder object list (contains particle infos)
         """
         objl = []
-        for tomo in tomoSet:
+        tomoList = [tomo.clone() for tomo in coord3DSet.getPrecedents()]
+        for tomo in tomoList:
             tomoId = tomo.getObjId()
             for coord in coord3DSet.iterCoordinates(volume=tomoId):
                 x = coord.getX()
