@@ -84,7 +84,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
 
         form.addSection(label='Training Parameters')
         form.addParam('psize', params.EnumParam,
-                      default=1,  # 40: 1st element in [40, 44, 48, 52, 56, 60, 64]
+                      default=0,  # 40: 1st element in [40, 44, 48, 52, 56, 60, 64]
                       choices=list(range(40, 65, 4)),
                       label='Patch size',
                       important=True,
@@ -180,7 +180,43 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         Plugin.runDeepFinder(self, 'train', deepfinder_args)
 
     def trainingStep(self):
-        pass
+        # Get tomo paths, target paths, train objl and valid objl for DeepFinder:
+        path_tomos, path_targets, objl_train, objl_valid = self._getDeepFinderObjectsFromInput(
+            self.tomoMasksTrain.get(), self.tomoMasksValid.get(), self.coord.get())
+
+        # Save objl to extra folder:
+        fname_objl_train = abspath(self._getExtraPath('objl_train.xml'))
+        cv.objl_write(objl_train, fname_objl_train)
+        fname_objl_valid = abspath(self._getExtraPath('objl_valid.xml'))
+        cv.objl_write(objl_valid, fname_objl_valid)
+
+        # Get number of classes from objl, and store as attribute (useful for output step):
+        self.nClass = len(cv.objl_get_labels(objl_train)) + 1  # (+1 for background class)
+
+        # Save parameters to xml file:
+        params = cv.ParamsTrain()
+
+        params.path_out = abspath(self._getExtraPath()) + '/'
+        params.path_tomo = path_tomos
+        params.path_target = path_targets
+        params.path_objl_train = fname_objl_train
+        params.path_objl_valid = fname_objl_valid
+        params.Ncl = self.nClass
+        params.psize = self._decodeContValue(getattr(self, 'psize').get())
+        params.bsize = self.bsize.get()
+        params.nepochs = self.epochs.get()
+        params.steps_per_e = self.stepsPerE.get()
+        params.steps_per_v = self.stepsPerV.get()
+        params.flag_direct_read = False  # in current deepfinder version only works with tomos/targets stored as h5
+        params.flag_bootstrap = self.bootstrap.get()
+        params.rnd_shift = self.rndShift.get()
+
+        fname_params = abspath(self._getExtraPath('params_train.xml'))
+        params.write(fname_params)
+
+        # Launch DeepFinder training:
+        deepfinder_args = '-p ' + fname_params
+        Plugin.runDeepFinder(self, 'train', deepfinder_args)
 
     def createOutputStep(self):
         netWeights = DeepFinderNet()
@@ -195,7 +231,6 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         """Decode the psize value and represent it as expected by DeepFinder"""
         return PSIZE_CHOICES[idx]
 
-    @classmethod
     def _getDeepFinderObjectsFromInput(self, tomoMaskSetTrain, tomoMaskSetValid, coord3DSet):
         """Get all objects of specified class.
         Args:
@@ -209,7 +244,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
             list of dict : objl_valid
         """
         # Join the tomoMaskSets. 1st valid, then train. Order is important!
-        tomoMaskSetAll = self._joinSetsOfTomoMasks(tomoMaskSetValid, tomoMaskSetTrain)
+        tomoMaskSetAll = self._joinSetsOfTomoMasks(tomoMaskSetValid, tomoMaskSetTrain, self._getPath())
 
         # Get the file paths for tomos and targets (=tomoMasks)
         path_tomos, path_targets = self._getPathListsFromTomoMaskSet(tomoMaskSetAll)
@@ -218,24 +253,24 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         objl_all = self._getObjlFromInputCoordinatesV2(tomoMaskSetAll, coord3DSet)
 
         # Separate objl into objl_valid and objl_train:
-        Nvalid = len(tomoMaskSetValid.getPrecedents())
-        Ntrain = len(tomoMaskSetTrain.getPrecedents())
+        Nvalid = tomoMaskSetValid.__len__()
+        Ntrain = tomoMaskSetTrain.__len__()
 
         tidx_list_valid = list(range(Nvalid))
         tidx_list_train = list(range(Nvalid, Nvalid+Ntrain))
 
         objl_valid = []
         for tidx in tidx_list_valid:
-            objl_valid.append(cv.objl_get_tomo(objl_all, tidx))
+            objl_valid = objl_valid + cv.objl_get_tomo(objl_all, tidx)
 
         objl_train = []
         for tidx in tidx_list_train:
-            objl_train.append(cv.objl_get_tomo(objl_all, tidx))
+            objl_train = objl_train + cv.objl_get_tomo(objl_all, tidx)
 
         return path_tomos, path_targets, objl_train, objl_valid
 
     @staticmethod
-    def _joinSetsOfTomoMasks(tomoMaskSet1, tomoMaskSet2):
+    def _joinSetsOfTomoMasks(tomoMaskSet1, tomoMaskSet2, path):
         """ Joins two tomoMaskSets.
         Args:
             tomoMaskSet1 (SetOfTomoMasks)
@@ -243,7 +278,10 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         Returns:
             SetOfTomoMasks
         """
-        tomoMaskSet = SetOfTomoMasks
+        #tomoMaskSet = SetOfTomoMasks()
+        tomoMaskSet = SetOfTomoMasks.create(path, template='setOfTomoMasks%s.sqlite')
+        tomoMaskSet.copyInfo(tomoMaskSet1)
+        tomoMaskSet.setName('target set')
         for tomoMask in tomoMaskSet1:
             tomoMaskSet.append(tomoMask)
         for tomoMask in tomoMaskSet2:

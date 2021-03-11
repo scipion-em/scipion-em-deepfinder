@@ -82,18 +82,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
 
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
-        # JORGE
-        import os
-        fname = "/home/jjimenez/Desktop/test_JJ.txt"
-        if os.path.exists(fname):
-            os.remove(fname)
-        fjj = open(fname, "a+")
-        fjj.write('JORGE--------->onDebugMode PID {}'.format(os.getpid()))
-        fjj.close()
-        print('JORGE--------->onDebugMode PID {}'.format(os.getpid()))
-        import time
-        time.sleep(10)
-        # JORGE_END
         # Insert processing steps
         self._initialize()
         self._insertFunctionStep('launchTargetGenerationStep')
@@ -102,12 +90,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
     def launchTargetGenerationStep(self):
 
         self.tomoSet = self.inputCoordinates.get().getPrecedents()
-
-        ######
-        print('--------> tomoset size: '+str(len(self.tomoSet)))
-        for tomo in self.tomoSet:
-            print('------------------------> tomoid: ', str(tomo.getObjId()))
-        #####
 
         # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
         param = cv.ParamsGenTarget()
@@ -127,9 +109,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         # Now, set parameters specific to each tomogram:
         for tidx, tomo in enumerate(self.tomoSet):
             # Get objl for tomogram and save objl to extra folder:
-            # tomoSetSingle = self._createSetOfTomograms()
-            # tomoSetSingle.append(tomo)
-            # objl_tomoList = self._getObjlFromInputCoordinates(self.tomoSet, self.inputCoordinates.get())
             objl_tomo = cv.objl_get_tomo(objl_tomoList, tomo.getObjId())
             fname_objl = abspath(self._getExtraPath('objl.xml'))
             cv.objl_write(objl_tomo, fname_objl)
