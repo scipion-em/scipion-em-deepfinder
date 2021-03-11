@@ -29,7 +29,7 @@ from os.path import abspath
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
-from tomo.objects import Tomogram
+from tomo.objects import Tomogram, TomoMask, SetOfTomoMasks
 from tomo.protocols import ProtTomoPicking
 
 from deepfinder import Plugin
@@ -89,12 +89,12 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
             deepfinder_args += ' -p ' + str(self.psize)
             deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
-            if self.bin:
-                deepfinder_args += ' -bin '
-                self._outputFilesBinned.append(self._genOutputFileName(tomo, binned=True))
+            # if self.bin:
+            #     deepfinder_args += ' -bin '
+            #     self._outputFilesBinned.append(self._genOutputFileName(tomo, binned=True))
             Plugin.runDeepFinder(self, 'segment', deepfinder_args)
 
-    def createOutputStep(self):
+    def createOutputStepOLD(self):
         outputSetOfTomo = self._genOutputData(self._outputFiles, '_segmented')
         # Link to output:
         self._defineOutputs(outputSegmentationSet=outputSetOfTomo)
@@ -103,11 +103,32 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         # If 'bin' option is checked, also link binned segmentation maps to output.
         # I have to do this in a separate loop because only one set can be open at a time
         # else error: Protocol failed: Cannot operate on a closed database
-        if self.bin:
-            outputSetOfTomoBinned = self._genOutputData(self._outputFiles, '_segmented_binned')
-            # Link to output:
-            self._defineOutputs(outputSegmentationSetBinned=outputSetOfTomoBinned)
-            # self._defineSourceRelation(self.inputTomograms, segmSetBin)
+        # if self.bin:
+        #     outputSetOfTomoBinned = self._genOutputData(self._outputFiles, '_segmented_binned')
+        #     # Link to output:
+        #     self._defineOutputs(outputSegmentationSetBinned=outputSetOfTomoBinned)
+        #     # self._defineSourceRelation(self.inputTomograms, segmSetBin)
+
+    def createOutputStep(self):
+        tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
+        tomoMaskSet.copyInfo(self.inputTomograms.get())
+        tomoMaskSet.setName('segmented tomograms set')
+
+        for tomo, tomoMaskName in zip(self.inputTomograms.get(), self._outputFiles):
+
+            # Import generated target from extra folder and store into TomoMask object:
+            tomoMask = TomoMask()
+            tomoMask.cleanObjId()
+            tomoMask.copyInfo(tomo)
+            tomoMask.setFileName(tomoMaskName)
+
+            # Link to origin tomogram:
+            tomoMask.setVolName(tomo.getFileName())
+
+            tomoMaskSet.append(tomoMask)
+
+        # Link to output:
+        self._defineOutputs(outputTargetSet=tomoMaskSet)
 
     # --------------------------- INFO functions ----------------------
     def getMethods(self, output):
