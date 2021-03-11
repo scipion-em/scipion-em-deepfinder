@@ -80,7 +80,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     # --------------------------- STEPS functions -----------------------------
     def launchSegmentationStep(self):
         for tomo in self.inputTomograms.get().iterItems():
-            outputFileName = self._genOutputFileName(tomo)
+            outputFileName = self._genOutputFileName(tomo, binned=self.bin.get())
             self._outputFiles.append(outputFileName)
 
             # Launch annotation GUI passing the tomogram file name
@@ -112,6 +112,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     def createOutputStep(self):
         tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
         tomoMaskSet.copyInfo(self.inputTomograms.get())
+        tomoMaskSet.setDim(self.inputTomograms.get().getDimensions())
         tomoMaskSet.setName('segmented tomograms set')
 
         for tomo, tomoMaskName in zip(self.inputTomograms.get(), self._outputFiles):
@@ -168,5 +169,5 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     def _genOutputFileName(tomo, binned=False):
         binStr = ''
         if binned:
-            binStr = 'binned'
-        return 'segmentation_' + removeBaseExt(tomo.getFileName()) + '_%s.mrc' % binStr
+            binStr = '_binned'
+        return 'segmentation_' + removeBaseExt(tomo.getFileName()) + '%s.mrc' % binStr
