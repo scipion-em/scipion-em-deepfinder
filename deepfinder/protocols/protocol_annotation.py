@@ -71,9 +71,10 @@ class DeepFinderAnnotations(ProtTomoPicking):
         # Launch annotation GUI passing the tomogram file name
         deepfinder_args = ' -t %s ' % abspath(tomoName)
         deepfinder_args += '-o %s' % abspath(self._getExtraPath(fname_objl))
+        deepfinder_args += ' -scipion' # hides unnecessary buttons from DeepFinder GUI
         Plugin.runDeepFinder(self, 'annotate', deepfinder_args)
 
-    def createOutputStep(self):
+    def createOutputStepOLD(self):
         if glob.glob(self._getExtraPath('*.xml')):
             self._noAnnotations.set(False)
 
@@ -129,6 +130,55 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
                 self._defineOutputs(outputCoordinates=coord3DSet)
                 self._defineSourceRelation(setTomograms, coord3DSet)
+
+            self.annotationSummary.set(annotationSummary)
+            self._store(self.annotationSummary, self._noAnnotations)
+
+    def createOutputStep(self):
+        if glob.glob(self._getExtraPath('*.xml')):
+            self._noAnnotations.set(False)
+
+            setTomograms = self.inputTomograms.get()
+
+            coord3DSet = self._createSetOfCoordinates3D(setTomograms)
+            coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
+
+            coordCounter = 0
+            annotationSummary = ''
+            for tidx, tomo in enumerate(setTomograms.iterItems()):
+                # Read objl:
+                fname_objl = 'objl_annot_' + removeBaseExt(tomo.getFileName()) + '.xml'
+                objl_tomo = cv.objl_read(abspath(self._getExtraPath(fname_objl)))
+
+                # Generate string for protocol summary:
+                msg = 'Tomogram ' + str(tidx + 1) + ': a total of ' + \
+                    str(len(objl_tomo)) + ' objects has been annotated.'
+                annotationSummary += msg
+                lbl_list = cv.objl_get_labels(objl_tomo)
+                for lbl in lbl_list:
+                    objl_class = cv.objl_get_class(objl_tomo, lbl)
+                    msg = '\nClass ' + str(lbl) + ': ' + str(len(objl_class)) + ' objects'
+                    annotationSummary += msg
+                annotationSummary += '\n'
+
+                for idx in range(len(objl_tomo)):
+                    x = objl_tomo[idx]['x']
+                    y = objl_tomo[idx]['y']
+                    z = objl_tomo[idx]['z']
+                    lbl = objl_tomo[idx]['label']
+
+                    coord = Coordinate3D()
+                    coord.setObjId(coordCounter + 1)
+                    coord.setPosition(x, y, z)
+                    coord.setVolume(tomo)
+                    coord.setVolId(tidx + 1)
+                    coord._dfLabel = String(str(lbl))
+
+                    coord3DSet.append(coord)
+                    coordCounter += 1
+
+            self._defineOutputs(outputCoordinates=coord3DSet)
+            self._defineSourceRelation(setTomograms, coord3DSet)
 
             self.annotationSummary.set(annotationSummary)
             self._store(self.annotationSummary, self._noAnnotations)
