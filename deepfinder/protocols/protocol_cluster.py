@@ -24,9 +24,10 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from pyworkflow.object import Integer, Set
+from pyworkflow.object import Integer, Set, String, Float
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
+from tomo.objects import Coordinate3D
 from tomo.protocols import ProtTomoPicking
 from deepfinder.objects import Coordinate3DWithScore
 
@@ -47,12 +48,17 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
     _label = 'cluster'
 
+    def __init__(self, **args):
+        ProtTomoPicking.__init__(self, **args)
+        #ProtDeepFinderBase.__init__(self, **args)
+        self.clusteringSummary = String()
+
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label=Message.LABEL_INPUT)
 
         form.addParam('inputSegmentations', PointerParam,
-                      pointerClass='SetOfTomograms',
+                      pointerClass='SetOfTomoMasks',
                       label="Segmentation maps", important=True,
                       help='Please select the segmentation maps you would like to analyze.')
 
@@ -83,7 +89,7 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
             Plugin.runDeepFinder(self, 'cluster', deepfinder_args)
 
-    def createOutputStep(self):
+    def createOutputStepOLD(self):
         # Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
         setSegmentations = self.inputSegmentations.get()
 
@@ -149,24 +155,89 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
         self._store()
 
 
+    def createOutputStep(self):
+        # Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
+        setSegmentations = self.inputSegmentations.get()
+
+
+        coord3DSet = self._createSetOfCoordinates3DWithScore(setSegmentations)  # lbl is a suffix for sqlite filename. Important, else overwrite!
+        coord3DSet.setName('Detected objects')
+        coord3DSet.setPrecedents(setSegmentations)
+        coord3DSet.setSamplingRate(setSegmentations.getSamplingRate())
+
+        coordCounter = 0
+        clusteringSummary = ''
+        for segmInd, segm in enumerate(setSegmentations.iterItems()):
+            # Get objl filename:
+            fname_segm = os.path.splitext(segm.getFileName())
+            fname_segm = os.path.basename(fname_segm[0])
+            fname_objl = 'objl_' + fname_segm + '.xml'
+
+            # Read objl:
+            objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
+
+            # Generate string for protocol summary:
+            msg = 'Segmentation '+str(segmInd+1)+': a total of ' + str(len(objl_tomo)) + ' objects has been found.'
+            clusteringSummary += msg
+            lbl_list = cv.objl_get_labels(objl_tomo)
+            for lbl in lbl_list:
+                objl_class = cv.objl_get_class(objl_tomo, lbl)
+                msg = '\nClass ' + str(lbl) + ': ' + str(len(objl_class)) + ' objects'
+                clusteringSummary += msg
+            clusteringSummary += '\n'
+
+            # Get tomo corresponding to current tomomask:
+            tomo = segm.getTomogram()
+
+            for idx in range(len(objl_tomo)):
+                x = objl_tomo[idx]['x']
+                y = objl_tomo[idx]['y']
+                z = objl_tomo[idx]['z']
+                lbl = objl_tomo[idx]['label']
+                score = objl_tomo[idx]['cluster_size']
+
+                coord = Coordinate3D()
+                coord.setObjId(coordCounter)
+                coord.setPosition(x, y, z)
+                coord.setVolume(tomo)
+                coord.setVolId(segmInd + 1)
+                coord._dfLabel = String(str(lbl))
+                coord._dfScore = Float(score)
+
+                coord3DSet.append(coord)
+
+                coordCounter += 1
+
+        self._defineOutputs(outputCoordinates=coord3DSet)
+        self._defineSourceRelation(setSegmentations, coord3DSet)
+
+        self.clusteringSummary.set(clusteringSummary)
+        self._store(self.clusteringSummary)
+
+        # # Link to output:
+        # name = 'outputCoordinates3D'
+        # args = {}
+        # coord3DSet.setStreamState(Set.STREAM_OPEN)
+        # args[name] = coord3DSet
+        #
+        # self._defineOutputs(**args)
+        # self._defineSourceRelation(setSegmentations, coord3DSet)
+        #
+        # # I (emoebel) don't know what this is for, but is apparently necessary (copied from Estrella's XmippProtCCroi)
+        # for outputset in self._iterOutputsNew():
+        #     outputset[1].setStreamState(Set.STREAM_CLOSED)
+        # self._store()
+
+
     # --------------------------- DEFINE info functions ---------------------- # TODO
-    def getMethods(self, output):
-        msg = 'User picked %d particles ' % output.getSize()
-        return msg
+    def _summary(self):
+        """ Summarize what the protocol has done"""
+        summary = []
+        if self.isFinished():
+            if self.clusteringSummary.get():
+                summary.append(self.clusteringSummary.get())
 
-    def _methods(self):
-        methodsMsgs = []
-        if self.inputTomograms is None:
-            return ['Input tomogram not available yet.']
+            # if self._noAnnotations.get():
+            #     summary.append('NO OBJECTS WERE TAKEN.')
 
-        methodsMsgs.append("Input tomograms imported of dims %s." % (
-            str(self.inputTomograms.get().getDim())))
-
-        if self.getOutputsSize() >= 1:
-            for key, output in self.iterOutputAttributes():
-                msg = self.getMethods(output)
-                methodsMsgs.append("%s: %s" % (self.getObjectTag(output), msg))
-        else:
-            methodsMsgs.append(Message.TEXT_NO_OUTPUT_CO)
-
-        return methodsMsgs
+        return summary
