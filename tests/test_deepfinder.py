@@ -39,8 +39,8 @@ class TestDeepFinderImportCoordinates(BaseTest):
     def setUpClass(cls):
         setupTestProject(cls)
         cls.dataset = DataSet.getDataSet('deepfinder')
-        cls.objl = cls.dataset.getFile('coordset0')
-        cls.tomogram = cls.dataset.getFile('tomo0')
+        #cls.objl = cls.dataset.getFile('coordset0')
+        #cls.tomogram = cls.dataset.getFile('tomo0')
 
     def _runDeepFinderImportCoordinates(self):
         protImportTomogram = self.newProtocol(tomo.protocols.ProtImportTomograms,
