@@ -89,78 +89,12 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
             Plugin.runDeepFinder(self, 'cluster', deepfinder_args)
 
-    def createOutputStepOLD(self):
-        # Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
-        setSegmentations = self.inputSegmentations.get()
-
-        # First, determine the classes that have been found (check in all object lists):
-        objl = []
-        for segm in setSegmentations.iterItems():
-            # Get objl filename:
-            fname_segm = os.path.splitext(segm.getFileName())
-            fname_segm = os.path.basename(fname_segm[0])
-            fname_objl = 'objl_' + fname_segm + '.xml'
-
-            # Read objl:
-            objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
-            objl.extend(objl_tomo)
-
-        lbl_list = cv.objl_get_labels(objl)  # get unique class labels
-
-        # For each class, iterate over all object lists (1 per tomo) and store coordinates
-        # in SetOfCoordinates3D (1 per class)
-        # Remark: only 1 setOfCoordinates3D can exist at a time, else:
-        # "Protocol failed: Cannot operate on a closed database."
-        for lbl in lbl_list:
-            coord3DSet = self._createSetOfCoordinates3DWithScore(setSegmentations,
-                                                        lbl)  # lbl is a suffix for sqlite filename. Important, else overwrite!
-            coord3DSet.setName('Class ' + str(lbl))
-            coord3DSet.setPrecedents(setSegmentations)
-            coord3DSet.setSamplingRate(setSegmentations.getSamplingRate())
-
-            for segm in setSegmentations.iterItems():
-                # Get objl filename:
-                fname_segm = os.path.splitext(segm.getFileName())
-                fname_segm = os.path.basename(fname_segm[0])
-                fname_objl = 'objl_' + fname_segm + '.xml'
-
-                # Read objl:
-                objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
-                objl_class = cv.objl_get_class(objl_tomo, lbl)
-                for idx in range(len(objl_class)):
-                    x = objl_class[idx]['x']
-                    y = objl_class[idx]['y']
-                    z = objl_class[idx]['z']
-                    score = objl_class[idx]['cluster_size']
-
-                    coord = Coordinate3DWithScore()
-                    coord.setPosition(x, y, z)
-                    coord.setScore(score)
-                    coord.setVolume(segm)
-                    # coord.setVolName(segm.getFileName())
-                    coord3DSet.append(coord)
-
-            # Link to output:
-            name = 'outputCoordinates3D_class' + str(lbl)
-            args = {}
-            coord3DSet.setStreamState(Set.STREAM_OPEN)
-            args[name] = coord3DSet
-
-            self._defineOutputs(**args)
-            self._defineSourceRelation(setSegmentations, coord3DSet)
-
-        # I (emoebel) don't know what this is for, but is apparently necessary (copied from Estrella's XmippProtCCroi)
-        for outputset in self._iterOutputsNew():
-            outputset[1].setStreamState(Set.STREAM_CLOSED)
-        self._store()
-
-
     def createOutputStep(self):
         # Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
         setSegmentations = self.inputSegmentations.get()
 
 
-        coord3DSet = self._createSetOfCoordinates3DWithScore(setSegmentations)  # lbl is a suffix for sqlite filename. Important, else overwrite!
+        coord3DSet = self._createSetOfCoordinates3DWithScore(setSegmentations)
         coord3DSet.setName('Detected objects')
         coord3DSet.setPrecedents(setSegmentations)
         coord3DSet.setSamplingRate(setSegmentations.getSamplingRate())
@@ -214,19 +148,6 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
         self.clusteringSummary.set(clusteringSummary)
         self._store(self.clusteringSummary)
 
-        # # Link to output:
-        # name = 'outputCoordinates3D'
-        # args = {}
-        # coord3DSet.setStreamState(Set.STREAM_OPEN)
-        # args[name] = coord3DSet
-        #
-        # self._defineOutputs(**args)
-        # self._defineSourceRelation(setSegmentations, coord3DSet)
-        #
-        # # I (emoebel) don't know what this is for, but is apparently necessary (copied from Estrella's XmippProtCCroi)
-        # for outputset in self._iterOutputsNew():
-        #     outputset[1].setStreamState(Set.STREAM_CLOSED)
-        # self._store()
 
 
     # --------------------------- DEFINE info functions ---------------------- # TODO
