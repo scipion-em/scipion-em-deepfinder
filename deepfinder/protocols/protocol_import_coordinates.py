@@ -27,7 +27,7 @@
 import os
 from os.path import basename
 
-from pyworkflow.object import String, Float
+from pyworkflow.object import String
 
 from tomo.objects import SetOfCoordinates3D, Coordinate3D
 from tomo.protocols.protocol_base import ProtTomoImportFiles
@@ -39,10 +39,10 @@ import deepfinder.convert as cv
 class ImportCoordinates3D(ProtTomoImportFiles):
     """Protocol to import a DeepFinder object list as a set of 3D coordinates in Scipion"""
     _outputClassName = 'SetOfCoordinates3D'
-    _label = 'import set of coordinates 3D'
+    _label = 'import coordinates'
 
     def _defineParams(self, form):
-        ProtTomoImportFiles._defineParams(self, form)
+        ProtTomoImportFiles._defineImportParams(self, form)
 
         form.addParam('importTomograms', params.PointerParam,
                       pointerClass='SetOfTomograms',
@@ -52,21 +52,20 @@ class ImportCoordinates3D(ProtTomoImportFiles):
                            'coordinate files must be the same.')
 
     def _insertAllSteps(self):
-        self._insertFunctionStep('importCoordinatesStep',
-                                 self.samplingRate.get())
+        self._insertFunctionStep('importCoordinatesStep')
 
     # --------------------------- STEPS functions -----------------------------
-    def importCoordinatesStep(self, samplingRate):
+    def importCoordinatesStep(self):
         importTomograms = self.importTomograms.get()
         suffix = self._getOutputSuffix(SetOfCoordinates3D)
         coord3DSet = self._createSetOfCoordinates3D(importTomograms, suffix)
-        #coord3DSet.setBoxSize(self.boxSize.get()) # ?? I dont understand this param
-        coord3DSet.setSamplingRate(samplingRate)
+        #coord3DSet.setBoxSize(self.boxSize.get()) # ?? I (emoebel) dont understand this param
+
         coord3DSet.setPrecedents(importTomograms)
         coordCounter = 1
         for tomoInd,tomo in enumerate(importTomograms.iterItems()):
             tomoName = basename(os.path.splitext(tomo.getFileName())[0])
-
+            samplingRate = tomo.getSamplingRate()
             for coordFile, fileId in self.iterFiles():
                 fileName = basename(os.path.splitext(coordFile)[0])
 
@@ -88,6 +87,8 @@ class ImportCoordinates3D(ProtTomoImportFiles):
 
                         coord3DSet.append(coord)
                         coordCounter += 1
+
+        coord3DSet.setSamplingRate(samplingRate)
 
         self._defineOutputs(outputCoordinates=coord3DSet)
         self._defineSourceRelation(self.importTomograms, coord3DSet)
