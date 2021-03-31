@@ -69,10 +69,10 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
                       pointerClass='SetOfCoordinates3D',
                       help='1 coordinate set per class. A set may contain coordinates from different tomograms.')
 
-        form.addParam('initialVolume', PointerParam,
-                      pointerClass='Tomogram',
-                      label="Target initialization", important=True, allowsNull=True,
-                      help='For integrating non-macromolecule classes (e.g. membranes).')
+        #form.addParam('initialVolume', PointerParam,
+        #              pointerClass='Tomogram',
+        #              label="Target initialization", important=True, allowsNull=True,
+        #              help='For integrating non-macromolecule classes (e.g. membranes).')
 
         form.addParam('sphereRadii', params.StringParam,
                       default='5,6,...,3',
@@ -100,8 +100,8 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         radius_list = [int(r) for r in radius_list_string.split(',')]
         param.radius_list = radius_list
         # Set optional volume for target initialization:
-        if self.initialVolume.get():  # TODO should be 1 initial vol per target
-            param.path_initial_vol = self.initialVolume.get().getFileName()
+        #if self.initialVolume.get():  # TODO should be 1 initial vol per target
+        #    param.path_initial_vol = self.initialVolume.get().getFileName()
 
         objl_tomoList = self._getObjlFromInputCoordinates(self.inputCoordinates.get())
 
@@ -132,51 +132,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
             deepfinder_args = '-p ' + fname_params
             Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
-
-    def launchTargetGenerationStep_OLD(self):
-        # Then, convert the input setOfCoordinates3D to objl
-        # one class/setOfCoordinate3D. Class labels are reassigned here, and may not correspond to the label
-        # from annotation step.
-        objl = self._getObjlFromInputCoordinates(self.tomoSet, self.coord3DSet)
-
-        # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
-        param = cv.ParamsGenTarget()
-        # Set strategy:
-        param.strategy = 'spheres'
-        # Set radius list:
-        radius_list_string = self.sphereRadii.get()
-        radius_list = [int(r) for r in radius_list_string.split(',')]
-        param.radius_list = radius_list
-        # Set optional volume for target initialization:
-        if self.initialVolume.get():  # TODO should be 1 initial vol per target
-            param.path_initial_vol = self.initialVolume.get().getFileName()
-
-        # --------------------------------------------------------------------------------------------------------------
-        # Now, set parameters specific to each tomogram:
-        for tidx, tomo in enumerate(self.tomoSet):
-            # Save objl to tmp folder:
-            objl_tomo = cv.objl_get_tomo(objl, tidx)
-            fname_objl = abspath(self._getExtraPath('objl.xml'))
-            cv.objl_write(objl_tomo, fname_objl)
-
-            param.path_objl = fname_objl
-
-            # Set tomogram size:
-            dimX, dimY, dimZ = tomo.getDimensions()
-            param.tomo_size = (dimZ, dimY, dimX)
-
-            # Set path to where write the generated target:
-            fname_target = self._getExtraPath('target_' + removeBaseExt(tomo.getFileName()) + '.mrc')
-            self.targetname_list.append(fname_target)
-            param.path_target = abspath(fname_target)
-
-            # Save the parameter file:
-            fname_params = abspath(self._getExtraPath('params_target_generation_%i.xml' % tidx))
-            param.write(fname_params)
-
-            # Launch DeepFinder target generation:
-            deepfinder_args = '-p ' + fname_params
-            Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
     def createOutputStep(self):
         targetSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
