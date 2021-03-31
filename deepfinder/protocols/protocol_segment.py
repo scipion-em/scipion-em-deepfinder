@@ -65,12 +65,6 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
                       label='Patch size', important=True,
                       help='')
 
-        form.addParam('bin', params.BooleanParam,
-                      default=True,
-                      label='Binning', important=True,
-                      help='If selected, also saves a binned version of the segmentation. '
-                           'Useful for speeding up cluster protocol.')
-
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         # Launch Boxing GUI
@@ -89,9 +83,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
             deepfinder_args += ' -p ' + str(self.psize)
             deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
-            # if self.bin:
-            #     deepfinder_args += ' -bin '
-            #     self._outputFilesBinned.append(self._genOutputFileName(tomo, binned=True))
+
             Plugin.runDeepFinder(self, 'segment', deepfinder_args)
 
     def createOutputStepOLD(self):
@@ -100,20 +92,12 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         self._defineOutputs(outputSegmentationSet=outputSetOfTomo)
         # self._defineSourceRelation(self.inputTomograms, segmSet)
 
-        # If 'bin' option is checked, also link binned segmentation maps to output.
-        # I have to do this in a separate loop because only one set can be open at a time
-        # else error: Protocol failed: Cannot operate on a closed database
-        # if self.bin:
-        #     outputSetOfTomoBinned = self._genOutputData(self._outputFiles, '_segmented_binned')
-        #     # Link to output:
-        #     self._defineOutputs(outputSegmentationSetBinned=outputSetOfTomoBinned)
-        #     # self._defineSourceRelation(self.inputTomograms, segmSetBin)
 
     def createOutputStep(self):
         tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
         tomoMaskSet.copyInfo(self.inputTomograms.get())
         tomoMaskSet.setDim(self.inputTomograms.get().getDimensions())
-        tomoMaskSet.setName('segmented tomograms set')
+        tomoMaskSet.setName('segmented tomogram set')
 
         for tomo, tomoMaskName in zip(self.inputTomograms.get(), self._outputFiles):
 
