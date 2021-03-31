@@ -157,6 +157,34 @@ def objl_get_tomo(objl, tomo_idx):
         objlOUT.append(objl[idx_tomo[idx]])
     return objlOUT
 
+def objl_disp(objlIN):
+    """Prints objl in terminal"""
+    for p in range(len(objlIN)):
+        tidx  = objlIN[p]['tomo_idx']
+        objid = objlIN[p]['obj_id']
+        lbl   = objlIN[p]['label']
+        x     = objlIN[p]['x']
+        y     = objlIN[p]['y']
+        z     = objlIN[p]['z']
+        psi   = objlIN[p]['psi']
+        phi   = objlIN[p]['phi']
+        the   = objlIN[p]['the']
+        csize = objlIN[p]['cluster_size']
+
+        strout = 'obj ' + str(p) + ': ('
+        if tidx!=None:
+            strout = strout + 'tomo_idx:' + str(tidx) + ', '
+        if objid!=None:
+            strout = strout + 'obj_id:' + str(objid) + ', '
+        strout = strout + 'lbl:' + str(lbl) + ', x:' + str(x) + ', y:' + str(y) + ', z:' + str(z) + ', '
+        if psi!=None or phi!=None or the!=None:
+            strout = strout + 'psi:' + str(psi) + ', phi:' + str(phi) + ', the:' + str(the) + ', '
+        if csize!=None:
+            strout = strout + 'cluster_size:' + str(csize)
+        strout = strout + ')'
+
+        print(strout)
+
 
 class ParamsGenTarget():
     def __init__(self):
