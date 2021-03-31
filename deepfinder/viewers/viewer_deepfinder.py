@@ -22,10 +22,10 @@ class DeepFinderViewer(pwviewer.Viewer):
         view = []
         cls = type(obj)
 
-        if issubclass(cls, SetOfTomograms) or issubclass(cls, Tomogram):
-            view = DeepFinderSetOfTomogramsView(obj)
-        elif issubclass(cls, SetOfTomoMasks) or issubclass(cls, TomoMask):
+        if issubclass(cls, SetOfTomoMasks) or issubclass(cls, TomoMask):
             view = DeepFinderSetOfTomoMasksView(obj)
+        elif issubclass(cls, SetOfTomograms) or issubclass(cls, Tomogram):
+            view = DeepFinderSetOfTomogramsView(obj)
 
         view._env = env
         return [view]
