@@ -43,6 +43,7 @@ class TestDeepFinderImportCoordinates(BaseTest):
         #cls.tomogram = cls.dataset.getFile('tomo0')
 
     def _runDeepFinderImportCoordinates(self):
+        print('=======> ' + self.dataset.getPath())
         protImportTomogram = self.newProtocol(tomo.protocols.ProtImportTomograms,
                                               filesPath=self.dataset.getPath(),
                                               pattern='tomo*.mrc',
