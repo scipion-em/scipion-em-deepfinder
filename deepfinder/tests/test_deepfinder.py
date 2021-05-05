@@ -24,9 +24,11 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from pyworkflow.tests import BaseTest, setupTestOutput, setupTestProject
+from pyworkflow.tests import BaseTest, setupTestProject
 
 import tomo.protocols
+from pyworkflow.utils import magentaStr
+
 import deepfinder.protocols
 
 from . import DataSet
@@ -43,10 +45,10 @@ class TestDeepFinderImportCoordinates(BaseTest):
         #cls.tomogram = cls.dataset.getFile('tomo0')
 
     def _runDeepFinderImportCoordinates(self):
-        print('=======> ' + self.dataset.getPath())
+        print(magentaStr('=======> ' + self.dataset.getPath()))
         protImportTomogram = self.newProtocol(tomo.protocols.ProtImportTomograms,
                                               filesPath=self.dataset.getPath(),
-                                              pattern='tomo*.mrc',
+                                              filesPattern='tomo*.mrc',
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)
