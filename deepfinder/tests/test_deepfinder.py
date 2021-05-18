@@ -170,6 +170,7 @@ class TestDeepFinderTrain(BaseTest):
                                           inputCoordinates=protImportCoordinates3d.outputCoordinates,
                                           sphereRadii=10)
 
+        self.launchProtocol(protGenTargets)
         output = getattr(protGenTargets, 'outputTargetSet', None)
         print('===========>'+str(output)) # is empty but why ??
         self.assertIsNotNone(output, "There was a problem with target generation output")
