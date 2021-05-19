@@ -179,6 +179,7 @@ class TestDeepFinderTrain(BaseTest):
         protSplitSets = self.newProtocol(pwem.protocols.ProtSplitSet,
                                          inputSet=protGenTargets.outputTargetSet,
                                          numberOfSets=2)
+        self.launchProtocol(protSplitSets)
         tomoMasksTrain = getattr(protSplitSets, 'outputTomoMasks01')
         tomoMasksValid = getattr(protSplitSets, 'outputTomoMasks02')
         self.assertIsNotNone(tomoMasksTrain, 'There was a problem with split set output')
