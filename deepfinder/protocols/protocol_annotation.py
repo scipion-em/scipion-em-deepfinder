@@ -27,6 +27,7 @@
 import glob
 from os.path import abspath
 
+from pyworkflow import BETA
 from pyworkflow.object import Boolean, String
 from pyworkflow.utils import removeBaseExt
 from tomo.protocols import ProtTomoPicking
@@ -35,16 +36,12 @@ from tomo.objects import Coordinate3D
 from deepfinder import Plugin
 import deepfinder.convert as cv
 
-"""
-Describe your python module here:
-This module will provide the traditional Hello world example
-"""
-
 
 class DeepFinderAnnotations(ProtTomoPicking):
     """This protocol allows you to annotate macromolecules in your tomograms, using a visual tool."""
 
     _label = 'annotate'
+    _devStatus = BETA
 
     def __init__(self, **args):
         ProtTomoPicking.__init__(self, **args)

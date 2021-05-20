@@ -27,6 +27,7 @@
 import os
 from os.path import basename
 
+from pyworkflow import BETA
 from pyworkflow.object import String
 
 from tomo.objects import SetOfCoordinates3D, Coordinate3D
@@ -36,10 +37,13 @@ import pyworkflow.protocol.params as params
 
 import deepfinder.convert as cv
 
+
 class ImportCoordinates3D(ProtTomoImportFiles):
     """Protocol to import a DeepFinder object list as a set of 3D coordinates in Scipion"""
+
     _outputClassName = 'SetOfCoordinates3D'
     _label = 'import coordinates'
+    _devStatus = BETA
 
     def _defineParams(self, form):
         ProtTomoImportFiles._defineImportParams(self, form)

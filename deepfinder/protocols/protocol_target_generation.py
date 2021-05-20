@@ -26,6 +26,7 @@
 # **************************************************************************
 from os.path import abspath
 
+from pyworkflow import BETA
 from pyworkflow.protocol import params, PointerParam
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
@@ -39,15 +40,12 @@ import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
 
 
-"""
-Describe your python module here:
-This module will provide the traditional Hello world example
-"""
-
 class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
     """ This protocol generates segmentation maps from annotations. These segmentation maps will be used as targets
      to train DeepFinder """
+
     _label = 'generate sphere target'
+    _devStatus = BETA
 
     def __init__(self, **args):
         EMProtocol.__init__(self, **args)

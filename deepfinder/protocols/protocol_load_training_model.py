@@ -1,4 +1,5 @@
 from pwem.protocols import EMProtocol, FileParam
+from pyworkflow import BETA
 from pyworkflow.protocol import IntParam, GT
 from pyworkflow.utils import Message
 
@@ -9,6 +10,7 @@ class ProtDeepFinderLoadTrainingModel(EMProtocol):
     """Use two data-independent reconstructed tomograms to train a 3D cryo-CARE network."""
 
     _label = 'Load Training Model'
+    _devStatus = BETA
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):

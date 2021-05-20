@@ -27,6 +27,7 @@
 from os.path import abspath
 
 from pwem.protocols import EMProtocol
+from pyworkflow import BETA
 from pyworkflow.protocol import params, PointerParam
 from pyworkflow.utils.properties import Message
 
@@ -38,16 +39,14 @@ from deepfinder.protocols import ProtDeepFinderBase
 from tomo.protocols import ProtTomoBase
 from tomo.objects import SetOfTomoMasks
 
-"""
-Describe your python module here:
-This module will provide the traditional Hello world example
-"""
-
 PSIZE_CHOICES = list(range(40, 65, 4))
+
 
 class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
     """ This protocol launches the training procedure """
+
     _label = 'train'
+    _devStatus = BETA
 
     def __init__(self, **args):
         EMProtocol.__init__(self, **args)

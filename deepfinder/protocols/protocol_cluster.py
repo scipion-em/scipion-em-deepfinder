@@ -24,6 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from pyworkflow import BETA
 from pyworkflow.object import Integer, Set, String, Float
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
@@ -37,16 +38,12 @@ from deepfinder.protocols import ProtDeepFinderBase
 
 import os
 
-"""
-Describe your python module here:
-This module will provide the traditional Hello world example
-"""
-
 
 class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol analyses segmentation maps and outputs particle coordinates and class."""
 
     _label = 'cluster'
+    _devStatus = BETA
 
     def __init__(self, **args):
         ProtTomoPicking.__init__(self, **args)

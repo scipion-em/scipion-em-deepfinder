@@ -26,6 +26,7 @@
 # **************************************************************************
 from os.path import abspath
 
+from pyworkflow import BETA
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
@@ -38,16 +39,12 @@ from deepfinder.protocols import ProtDeepFinderBase
 
 import os
 
-"""
-Describe your python module here:
-This module will provide the traditional Hello world example
-"""
-
 
 class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol segments tomograms, using a trained neural network."""
 
     _label = 'segment'
+    _devStatus = BETA
     _outputFiles = []
     _outputFilesBinned = []
 
