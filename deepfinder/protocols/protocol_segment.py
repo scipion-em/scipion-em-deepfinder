@@ -74,7 +74,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     # --------------------------- STEPS functions -----------------------------
     def launchSegmentationStep(self):
         for tomo in self.inputTomograms.get().iterItems():
-            outputFileName = self._genOutputFileName(tomo, binned=self.bin.get())
+            outputFileName = self._genOutputFileName(tomo, binned=False)
             self._outputFiles.append(outputFileName)
 
             # Launch annotation GUI passing the tomogram file name

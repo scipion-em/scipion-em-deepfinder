@@ -78,8 +78,7 @@ class TestDeepFinderImportCoordinates(BaseTest):
 
 
 class TestDeepFinderGenSphereTarget(BaseTest):
-    """This class check if the protocol to import DeepFinder object lists works properly."""
-    # modelled after tomo.test.TestTomoImportSetOfCoordinates3D
+    """This class check if the protocol to generate DeepFinder training targets (TomoMasks) works properly."""
 
     @classmethod
     def setUpClass(cls):
@@ -132,8 +131,7 @@ class TestDeepFinderGenSphereTarget(BaseTest):
 
 
 class TestDeepFinderTrain(BaseTest):
-    """This class check if the protocol to import DeepFinder object lists works properly."""
-    # modelled after tomo.test.TestTomoImportSetOfCoordinates3D
+    """This class check if the protocol to train the DeepFinder CNN works properly."""
 
     @classmethod
     def setUpClass(cls):
@@ -151,7 +149,6 @@ class TestDeepFinderTrain(BaseTest):
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)
-
         output = getattr(protImportTomogram, 'outputTomograms', None)
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
@@ -161,7 +158,6 @@ class TestDeepFinderTrain(BaseTest):
                                                    importTomograms=protImportTomogram.outputTomograms,
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
-
         output = getattr(protImportCoordinates3d, 'outputCoordinates', None)
         self.assertIsNotNone(output, "There was a problem with coordinate output")
 
@@ -172,7 +168,6 @@ class TestDeepFinderTrain(BaseTest):
 
         self.launchProtocol(protGenTargets)
         output = getattr(protGenTargets, 'outputTargetSet', None)
-        print('===========>'+str(output)) # is empty but why ??
         self.assertIsNotNone(output, "There was a problem with target generation output")
 
         # Split tomo mask set into train and valid:
@@ -202,10 +197,109 @@ class TestDeepFinderTrain(BaseTest):
 
         return protTrain
 
-    def test_generate_sphere_targets(self):
+    def test_train(self):
         protTrain = self._runDeepFinderTrain()
         output = getattr(protTrain, 'netWeights', None)
 
         self.assertTrue(output, "There was a problem with training output (net model weights)")
+
+        return output
+
+
+class TestDeepFinderSegment(BaseTest):
+    """This class check if the protocol tomogram segmentation works properly."""
+
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.dataset = DataSet.getDataSet('deepfinder')
+
+    def _runDeepFinderSegment(self):
+        # Get tomo:
+        protImportTomogram = self.newProtocol(tomo.protocols.ProtImportTomograms,
+                                              filesPath=self.dataset.getPath()+'/cropped_tomo0.mrc',
+                                              samplingRate=10)
+
+        self.launchProtocol(protImportTomogram)
+        output = getattr(protImportTomogram, 'outputTomograms', None)
+        self.assertIsNotNone(output, "There was a problem with tomogram output")
+
+        # Get model weights:
+        protImportModel = self.newProtocol(deepfinder.protocols.ProtDeepFinderLoadTrainingModel,
+                                           netWeightsFile=self.dataset.getPath()+'/net_weights_SHREC2019_4B4T.h5',
+                                           numClasses=2)
+        self.launchProtocol(protImportModel)
+        output = getattr(protImportModel, 'netWeights', None)
+        self.assertIsNotNone(output, "There was a problem with import model output")
+
+        # Define and launche test protocol:
+        protSegment = self.newProtocol(deepfinder.protocols.DeepFinderSegment,
+                                       inputTomograms=protImportTomogram.outputTomograms,
+                                       weights=protImportModel.netWeights,
+                                       psize=80)
+        self.launchProtocol(protSegment)
+
+        return protSegment
+
+    def test_segment(self):
+        protSegment = self._runDeepFinderSegment()
+        output = getattr(protSegment, 'outputTargetSet', None)
+
+        self.assertTrue(output, "There was a problem with segmentation output (SetOfTomoMasks)")
+
+        return output
+
+
+class TestDeepFinderCluster(BaseTest):
+    """This class check if the protocol for analyzing/clustering segmentation maps works properly."""
+
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.dataset = DataSet.getDataSet('deepfinder')
+
+    def _runDeepFinderCluster(self):
+        # Get TomoMask (with target generation protocol):
+        # Get tomos:
+        protImportTomogram = self.newProtocol(tomo.protocols.ProtImportTomograms,
+                                              filesPath=self.dataset.getPath()+'/tomo0.mrc',
+                                              samplingRate=10)
+
+        self.launchProtocol(protImportTomogram)
+        output = getattr(protImportTomogram, 'outputTomograms', None)
+        self.assertIsNotNone(output, "There was a problem with tomogram output")
+
+        # Get coordinates:
+        protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
+                                                   filesPath=self.dataset.getPath(),
+                                                   importTomograms=protImportTomogram.outputTomograms,
+                                                   filesPattern='*.xml')
+        self.launchProtocol(protImportCoordinates3d)
+        output = getattr(protImportCoordinates3d, 'outputCoordinates', None)
+        self.assertIsNotNone(output, "There was a problem with coordinate output")
+
+        # Get tomo masks (targets):
+        protGenTargets = self.newProtocol(deepfinder.protocols.DeepFinderGenerateTrainingTargetsSpheres,
+                                          inputCoordinates=protImportCoordinates3d.outputCoordinates,
+                                          sphereRadii=10)
+
+        self.launchProtocol(protGenTargets)
+        output = getattr(protGenTargets, 'outputTargetSet', None)
+        self.assertIsNotNone(output, "There was a problem with target generation output")
+
+        # Define and launch test protocol:
+        protClust = self.newProtocol(deepfinder.protocols.DeepFinderCluster,
+                                     inputSegmentations=protGenTargets.outputTargetSet,
+                                     cradius=10)
+        self.launchProtocol(protClust)
+
+        return protClust
+
+    def test_cluster(self):
+        protClust = self._runDeepFinderCluster()
+        output = getattr(protClust, 'outputCoordinates', None)
+
+        self.assertTrue(output, "There was a problem with segmentation map analysis output (coordinates)")
+        self.assertTrue(output.getSize() == 155)
 
         return output

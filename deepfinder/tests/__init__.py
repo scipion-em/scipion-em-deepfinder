@@ -31,6 +31,7 @@ DataSet(name='deepfinder', folder='deepfinder',
         files={
                'tomo0': 'tomo0.mrc',
                'tomo1': 'tomo1.mrc',
+               'cropped_tomo0': 'cropped_tomo0.mrc',
                'tomomask0': 'target0.mrc',
                'tomomask1': 'target1.mrc',
                'coordset0': 'tomo0.xml',
