@@ -32,6 +32,7 @@ from .constants import *
 _logo = "icon.png"
 _references = ['EMMANUEL2020']
 
+
 class Plugin(pwem.Plugin):
     _homeVar = DF_HOME
     _pathVars = [DF_HOME]
@@ -81,14 +82,14 @@ class Plugin(pwem.Plugin):
         installationCmd = cls.getCondaActivationCmd()
 
         # Create the environment
-        installationCmd += 'conda create -y -n %s -c anaconda python=3.6 && ' \
+        installationCmd += 'conda create -y -n %s -c anaconda python=3.6 cudnn=7.6.0=cuda10.0_0 && ' \
                            % env_name
 
         # Activate new the environment
         installationCmd += 'conda activate %s && ' % env_name
 
         # Install downloaded code
-        installationCmd += 'pip install -r requirements.txt && '  # for GPU usage should be requirements_gpu.txt
+        installationCmd += 'pip install -r requirements_gpu.txt && '  # for GPU usage should be requirements_gpu.txt
 
         # Flag installation finished
         installationCmd += 'touch %s' % DF_INSTALLED
