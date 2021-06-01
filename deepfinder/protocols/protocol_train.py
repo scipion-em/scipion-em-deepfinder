@@ -28,7 +28,7 @@ from os.path import abspath
 
 from pwem.protocols import EMProtocol
 from pyworkflow import BETA
-from pyworkflow.protocol import params, PointerParam
+from pyworkflow.protocol import params, PointerParam, GPU_LIST, LEVEL_ADVANCED
 from pyworkflow.utils.properties import Message
 
 from deepfinder import Plugin
@@ -99,7 +99,8 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                       default=100,
                       label='Number of epochs',
                       important=True,
-                      help='At the end of each epoch, evaluation on validation set is performed (useful to check if network overfits).')
+                      help='At the end of each epoch, evaluation on validation set is performed (useful to check if '
+                           'network overfits).')
 
         form.addParam('stepsPerE', params.IntParam,
                       default=100,
@@ -123,7 +124,13 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                       default=13,
                       label='Random shift',
                       important=True,
-                      help='(in voxels) Applied to positions in object list when sampling patches. Enhances network robustness. Make sure that objects are still contained in patches when applying shift.')
+                      help='(in voxels) Applied to positions in object list when sampling patches. Enhances network '
+                           'robustness. Make sure that objects are still contained in patches when applying shift.')
+
+        form.addHidden(GPU_LIST, params.StringParam, default='0',
+                       expertLevel=LEVEL_ADVANCED,
+                       label="Choose GPU IDs",
+                       help="GPU ID, normally it is 0.")
 
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
@@ -215,7 +222,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
 
         # Launch DeepFinder training:
         deepfinder_args = '-p ' + fname_params
-        Plugin.runDeepFinder(self, 'train', deepfinder_args)
+        Plugin.runDeepFinder(self, 'train', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
 
     def createOutputStep(self):
         netWeights = DeepFinderNet()

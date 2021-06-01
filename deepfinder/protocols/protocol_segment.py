@@ -27,17 +27,14 @@
 from os.path import abspath
 
 from pyworkflow import BETA
-from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
+from pyworkflow.protocol import params, PointerParam, GPU_LIST, LEVEL_ADVANCED
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
 from tomo.objects import Tomogram, TomoMask, SetOfTomoMasks
 from tomo.protocols import ProtTomoPicking
 
 from deepfinder import Plugin
-# from deepfinder.objects import DeepFinderSegmentation
 from deepfinder.protocols import ProtDeepFinderBase
-
-import os
 
 
 class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
@@ -62,6 +59,11 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
                       label='Patch size', important=True,
                       help='')
 
+        form.addHidden(GPU_LIST, params.StringParam, default='0',
+                       expertLevel=LEVEL_ADVANCED,
+                       label="Choose GPU IDs",
+                       help="GPU ID, normally it is 0.")
+
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         # Launch Boxing GUI
@@ -81,14 +83,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             deepfinder_args += ' -p ' + str(self.psize)
             deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
 
-            Plugin.runDeepFinder(self, 'segment', deepfinder_args)
-
-    def createOutputStepOLD(self):
-        outputSetOfTomo = self._genOutputData(self._outputFiles, '_segmented')
-        # Link to output:
-        self._defineOutputs(outputSegmentationSet=outputSetOfTomo)
-        # self._defineSourceRelation(self.inputTomograms, segmSet)
-
+            Plugin.runDeepFinder(self, 'segment', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
 
     def createOutputStep(self):
         tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
