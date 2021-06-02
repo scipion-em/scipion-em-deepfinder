@@ -312,33 +312,15 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
 
         return path_tomos, path_targets
 
-
-    # @staticmethod
-    # def _getSetOfTomosFromSetOfTomoMasks(tomoMaskSet):
-    #     """
-    #     Args:
-    #         tomoMasksSet (SetOfTomoMasks)
-    #     Returns:
-    #         SetOfTomograms
-    #     """
-    #     tomoSet = self._createSetOfTomograms()
-    #     for tomoMask in tomoMaskSet.iterItems():
-    #         fn_tomo = tomoMask.getVolName()
-    #         tomo = Tomogram(location=fn_tomo)
-    #         tomoSet.append(tomo)
-    #
-    #     return tomoSet
-
-
-
     # --------------------------- INFO functions ----------------------------------- # TODO
+
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []
 
         if self.isFinished():
 
-            summary.append("This protocol has printed *%s* %i times." % (self.message, self.times))
+            summary.append("Training finished.")
         return summary
 
     def _methods(self):

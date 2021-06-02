@@ -57,7 +57,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         form.addParam('psize', params.IntParam,
                       default=100,
                       label='Patch size', important=True,
-                      help='')
+                      help='It must be a multiple of 4, due to the network architecture.')
 
         form.addHidden(GPU_LIST, params.StringParam, default='0',
                        expertLevel=LEVEL_ADVANCED,
@@ -66,7 +66,6 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        # Launch Boxing GUI
         self._insertFunctionStep('launchSegmentationStep')
         self._insertFunctionStep('createOutputStep')
 
@@ -97,7 +96,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             tomoMask = TomoMask()
             tomoMask.cleanObjId()
             tomoMask.copyInfo(tomo)
-            tomoMask.setFileName(tomoMaskName)
+            tomoMask.setFileName(self._getExtraPath(tomoMaskName))
 
             # Link to origin tomogram:
             tomoMask.setVolName(tomo.getFileName())
@@ -108,8 +107,17 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         self._defineOutputs(outputTargetSet=tomoMaskSet)
 
     # --------------------------- INFO functions ----------------------
+    def _summary(self):
+        """ Summarize what the protocol has done"""
+        summary = []
+
+        if self.isFinished():
+
+            summary.append("Segmentation finished.")
+        return summary
+
     def getMethods(self, output):
-        msg = 'User picked %d particles ' % output.getSize()
+        msg = 'User picked %d particles ' % self.outputTargetSet.getSize()
         return msg
 
     def _methods(self):
@@ -120,7 +128,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         methodsMsgs.append("Input tomograms imported of dims %s." % (
             str(self.inputTomograms.get().getDim())))
 
-        if self.getOutputsSize() >= 1:
+        if self.outputTargetSet.getSize() >= 1:
             for key, output in self.iterOutputAttributes():
                 msg = self.getMethods(output)
                 methodsMsgs.append("%s: %s" % (self.getObjectTag(output), msg))

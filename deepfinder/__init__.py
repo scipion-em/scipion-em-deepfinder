@@ -32,11 +32,13 @@ from .constants import *
 
 _logo = "icon.png"
 _references = ['EMMANUEL2020']
+__version__ = '3.0.0'
 
 
 class Plugin(pwem.Plugin):
     _homeVar = DF_HOME
     _pathVars = [DF_HOME]
+    _url = 'https://deepfinder.readthedocs.io/en/latest/guide.html'
 
     @classmethod
     def _defineVariables(cls):

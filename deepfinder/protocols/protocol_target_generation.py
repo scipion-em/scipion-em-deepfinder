@@ -67,11 +67,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
                       pointerClass='SetOfCoordinates3D',
                       help='1 coordinate set per class. A set may contain coordinates from different tomograms.')
 
-        #form.addParam('initialVolume', PointerParam,
-        #              pointerClass='Tomogram',
-        #              label="Target initialization", important=True, allowsNull=True,
-        #              help='For integrating non-macromolecule classes (e.g. membranes).')
-
         form.addParam('sphereRadii', params.StringParam,
                       default='5,6,...,3',
                       label='Sphere radii', important=True,
@@ -130,7 +125,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
             deepfinder_args = '-p ' + fname_params
             Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
-
     def createOutputStep(self):
         targetSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
         targetSet.copyInfo(self.tomoSet)
@@ -165,7 +159,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
 
         if self.isFinished():
 
-            summary.append("This protocol has printed *%s* %i times." % (self.message, self.times))
+            summary.append("Target generation finished.")
         return summary
 
     def _methods(self):
