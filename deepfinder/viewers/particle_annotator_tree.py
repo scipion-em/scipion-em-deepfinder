@@ -46,4 +46,4 @@ class ParticleAnnotatorProvider(TomogramsTreeProvider):
                     'tags': "done"}
 
     def getColumns(self):
-        return [('TomoMasks (segmentations)', 300), ('status', 150)]
+        return [('Tomograms', 300), ('status', 150)]
