@@ -29,6 +29,7 @@ from os.path import basename
 
 from pyworkflow import BETA
 from pyworkflow.object import String
+from tomo.constants import BOTTOM_LEFT_CORNER
 
 from tomo.objects import SetOfCoordinates3D, Coordinate3D
 from tomo.protocols.protocol_base import ProtTomoImportFiles
@@ -63,13 +64,11 @@ class ImportCoordinates3D(ProtTomoImportFiles):
         importTomograms = self.importTomograms.get()
         suffix = self._getOutputSuffix(SetOfCoordinates3D)
         coord3DSet = self._createSetOfCoordinates3D(importTomograms, suffix)
-        #coord3DSet.setBoxSize(self.boxSize.get()) # ?? I (emoebel) dont understand this param
 
         coord3DSet.setPrecedents(importTomograms)
         coordCounter = 1
-        for tomoInd,tomo in enumerate(importTomograms.iterItems()):
+        for tomoInd, tomo in enumerate(importTomograms.iterItems()):
             tomoName = basename(os.path.splitext(tomo.getFileName())[0])
-            samplingRate = tomo.getSamplingRate()
             for coordFile, fileId in self.iterFiles():
                 fileName = basename(os.path.splitext(coordFile)[0])
 
@@ -83,16 +82,16 @@ class ImportCoordinates3D(ProtTomoImportFiles):
                         lbl = objl[idx]['label']
 
                         coord = Coordinate3D()
-                        coord.setObjId(coordCounter)
-                        coord.setPosition(x, y, z)
                         coord.setVolume(tomo)
+                        coord.setObjId(coordCounter)
+                        coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                         coord.setVolId(tomoInd + 1)
                         coord._dfLabel = String(str(lbl))
 
                         coord3DSet.append(coord)
                         coordCounter += 1
 
-        coord3DSet.setSamplingRate(samplingRate)
+        coord3DSet.setSamplingRate(importTomograms.getSamplingRate())
 
         self._defineOutputs(outputCoordinates=coord3DSet)
         self._defineSourceRelation(self.importTomograms, coord3DSet)

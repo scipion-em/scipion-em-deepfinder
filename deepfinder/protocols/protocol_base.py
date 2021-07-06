@@ -24,6 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.objects import SetOfTomograms
 from tomo.protocols import ProtTomoBase
 import deepfinder.objects
@@ -57,9 +58,9 @@ class ProtDeepFinderBase(ProtTomoBase):
         for tomo in tomoList:
             tomoId = tomo.getObjId()
             for coord in coord3DSet.iterCoordinates(volume=tomoId):
-                x = coord.getX()
-                y = coord.getY()
-                z = coord.getZ()
+                x = coord.getX(BOTTOM_LEFT_CORNER)
+                y = coord.getY(BOTTOM_LEFT_CORNER)
+                z = coord.getZ(BOTTOM_LEFT_CORNER)
                 lbl = int(str(coord._dfLabel))
                 cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tomoId)
 
@@ -81,9 +82,9 @@ class ProtDeepFinderBase(ProtTomoBase):
         for tidx, tomo in enumerate(tomoSet):
             tomoId = tomo.getObjId()
             for coord in coord3DSet.iterCoordinates(volume=tomoId):
-                x = coord.getX()
-                y = coord.getY()
-                z = coord.getZ()
+                x = coord.getX(BOTTOM_LEFT_CORNER)
+                y = coord.getY(BOTTOM_LEFT_CORNER)
+                z = coord.getZ(BOTTOM_LEFT_CORNER)
                 lbl = int(str(coord._dfLabel))
                 cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tidx)
 

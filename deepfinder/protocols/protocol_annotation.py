@@ -24,18 +24,17 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-import glob
 from os.path import abspath
-
 from pyworkflow import BETA
-from pyworkflow.object import Boolean, String, Integer
+from pyworkflow.object import String, Integer
 from pyworkflow.utils import removeBaseExt
+from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.protocols import ProtTomoPicking
 from tomo.objects import Coordinate3D
 
 import deepfinder.convert as cv
 from deepfinder.viewers.particle_annotator_tomo_viewer import ParticleAnnotatorDialog
-from deepfinder.viewers.particle_annotator_tree import  ParticleAnnotatorProvider
+from deepfinder.viewers.particle_annotator_tree import ParticleAnnotatorProvider
 
 
 class DeepFinderAnnotations(ProtTomoPicking):
@@ -108,7 +107,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
                 coord = Coordinate3D()
                 coord.setObjId(coordCounter + 1)
-                coord.setPosition(x, y, z)
+                coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                 coord.setVolume(tomo)
                 coord.setVolId(tidx + 1)
                 coord._dfLabel = String(str(lbl))
