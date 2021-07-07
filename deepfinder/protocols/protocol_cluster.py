@@ -25,17 +25,15 @@
 # *
 # **************************************************************************
 from pyworkflow import BETA
-from pyworkflow.object import Integer, Set, String, Float
-from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
+from pyworkflow.object import String, Float
+from pyworkflow.protocol import params, PointerParam
 from pyworkflow.utils.properties import Message
+from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.objects import Coordinate3D
 from tomo.protocols import ProtTomoPicking
-from deepfinder.objects import Coordinate3DWithScore
-
 from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
-
 import os
 
 
@@ -47,7 +45,6 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
     def __init__(self, **args):
         ProtTomoPicking.__init__(self, **args)
-        #ProtDeepFinderBase.__init__(self, **args)
         self.clusteringSummary = String()
 
     # --------------------------- DEFINE param functions ----------------------
@@ -128,9 +125,9 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
                 score = objl_tomo[idx]['cluster_size']
 
                 coord = Coordinate3D()
-                coord.setObjId(coordCounter)
-                coord.setPosition(x, y, z)
                 coord.setVolume(tomo)
+                coord.setObjId(coordCounter)
+                coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                 coord.setVolId(segmInd + 1)
                 coord._dfLabel = String(str(lbl))
                 coord._dfScore = Float(score)

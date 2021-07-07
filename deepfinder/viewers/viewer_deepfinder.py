@@ -7,8 +7,6 @@ from deepfinder import Plugin
 class DeepFinderViewer(pwviewer.Viewer):
     _label = 'Ortho-slice volume explorer'
     _targets = [
-        Tomogram,
-        TomoMask,
         SetOfTomograms,
         SetOfTomoMasks
     ]
