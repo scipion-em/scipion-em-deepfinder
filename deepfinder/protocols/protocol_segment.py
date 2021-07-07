@@ -24,25 +24,26 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
+from os.path import abspath
+
+from pyworkflow import BETA
+from pyworkflow.protocol import params, PointerParam, GPU_LIST, LEVEL_ADVANCED
+from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
+from tomo.objects import Tomogram, TomoMask, SetOfTomoMasks
 from tomo.protocols import ProtTomoPicking
 
 from deepfinder import Plugin
-from deepfinder.objects import DeepFinderSegmentation
 from deepfinder.protocols import ProtDeepFinderBase
 
-import os
-
-"""
-Describe your python module here:
-This module will provide the traditional Hello world example
-"""
 
 class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol segments tomograms, using a trained neural network."""
 
     _label = 'segment'
+    _devStatus = BETA
+    _outputFiles = []
+    _outputFilesBinned = []
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -53,109 +54,70 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
                       label="Neural network model", important=True,
                       help='Select a trained DeepFinder neural network.')
 
-        #form.addParam('Ncl', params.IntParam,
-        #              default=100,
-        #              label='Number of classes', important=True,
-        #              help='Number of classes, background included')
-
         form.addParam('psize', params.IntParam,
                       default=100,
                       label='Patch size', important=True,
-                      help='')
+                      help='It must be a multiple of 4, due to the network architecture.')
 
-        form.addParam('bin', params.BooleanParam,
-                      default=True,
-                      label='Binning', important=True,
-                      help='If selected, also saves a binned version of the segmentation. Useful for speeding up cluster protocol.')
-
+        form.addHidden(GPU_LIST, params.StringParam, default='0',
+                       expertLevel=LEVEL_ADVANCED,
+                       label="Choose GPU IDs",
+                       help="GPU ID, normally it is 0.")
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-
-        # Launch Boxing GUI
         self._insertFunctionStep('launchSegmentationStep')
         self._insertFunctionStep('createOutputStep')
 
     # --------------------------- STEPS functions -----------------------------
     def launchSegmentationStep(self):
         for tomo in self.inputTomograms.get().iterItems():
-            # Generate objl filename (output):
-            fname_tomo = os.path.splitext( tomo.getFileName() )
-            fname_tomo = os.path.basename(fname_tomo[0])
-            fname_segm = 'segmentation_'+fname_tomo+'.mrc'
+            outputFileName = self._genOutputFileName(tomo, binned=False)
+            self._outputFiles.append(outputFileName)
 
             # Launch annotation GUI passing the tomogram file name
             deepfinder_args = '-t ' + tomo.getFileName()
             deepfinder_args += ' -w ' + self.weights.get().getPath() # FIXME: Return object from pointer
             deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
             deepfinder_args += ' -p ' + str(self.psize)
-            deepfinder_args += ' -o ' + os.path.abspath(os.path.join(self._getExtraPath(), fname_segm))
-            if self.bin:
-                deepfinder_args += ' -bin '
-            Plugin.runDeepFinder(self, 'segment', deepfinder_args)
+            deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
+
+            Plugin.runDeepFinder(self, 'segment', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
 
     def createOutputStep(self):
-        segmSet = self._createSetOfDeepFinderSegmentations()
-        segmSet.setName('segmentation set')
+        tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
+        tomoMaskSet.copyInfo(self.inputTomograms.get())
+        tomoMaskSet.setDim(self.inputTomograms.get().getDimensions())
+        tomoMaskSet.setName('segmented tomogram set')
 
-        for tomo in self.inputTomograms.get().iterItems():
-            # Generate objl filename (output):
-            fname_tomo = os.path.splitext(tomo.getFileName())
-            fname_tomo = os.path.basename(fname_tomo[0])
-            fname_segm = 'segmentation_' + fname_tomo + '.mrc'
-            fname_segm = os.path.abspath(os.path.join(self._getExtraPath(), fname_segm))
+        for tomo, tomoMaskName in zip(self.inputTomograms.get(), self._outputFiles):
 
-            # Import generated target from tmp folder and and store into segmentation object:
-            segm = DeepFinderSegmentation()
-            segm.cleanObjId()
-            segm.setFileName(fname_segm)
+            # Import generated target from extra folder and store into TomoMask object:
+            tomoMask = TomoMask()
+            tomoMask.cleanObjId()
+            tomoMask.copyInfo(tomo)
+            tomoMask.setFileName(self._getExtraPath(tomoMaskName))
 
             # Link to origin tomogram:
-            tomoname = tomo.getFileName()
-            segm.setTomoName(tomoname)
+            tomoMask.setVolName(tomo.getFileName())
 
-            # Append to set:
-            segmSet.append(segm)
+            tomoMaskSet.append(tomoMask)
 
         # Link to output:
-        # targetSet.write() # FIXME: EMProtocol is the one that has the method to save Sets
-        self._defineOutputs(outputSegmentationSet=segmSet)
-        self._defineSourceRelation(self.inputTomograms, segmSet)
+        self._defineOutputs(outputTargetSet=tomoMaskSet)
 
+    # --------------------------- INFO functions ----------------------
+    def _summary(self):
+        """ Summarize what the protocol has done"""
+        summary = []
 
-        # If 'bin' option is checked, also link binned segmentation maps to output.
-        # I have to do this in a separate loop because only one set can be open at a time
-        # else error: Protocol failed: Cannot operate on a closed database
-        if self.bin:
-            segmSetBin = self._createSetOfDeepFinderSegmentations()
-            segmSetBin.setName('binned segmentation set')
+        if self.isFinished():
 
-            for tomo in self.inputTomograms.get().iterItems():
-                # Generate objl filename (output):
-                fname_tomo = os.path.splitext(tomo.getFileName())
-                fname_tomo = os.path.basename(fname_tomo[0])
-                fname_segm = 'segmentation_' + fname_tomo + '_binned.mrc'
-                fname_segm = os.path.abspath(os.path.join(self._getExtraPath(), fname_segm))
+            summary.append("Segmentation finished.")
+        return summary
 
-                # Import generated target from tmp folder and and store into segmentation object:
-                segm = DeepFinderSegmentation()
-                segm.cleanObjId()
-                segm.setFileName(fname_segm)
-
-                # Link to origin tomogram:
-                tomoname = tomo.getFileName()
-                segm.setTomoName(tomoname)
-
-                # Append to set:
-                segmSetBin.append(segm)
-
-            self._defineOutputs(outputSegmentationSetBinned=segmSetBin)
-            self._defineSourceRelation(self.inputTomograms, segmSetBin)
-
-
-    # --------------------------- DEFINE info functions ---------------------- # TODO
     def getMethods(self, output):
-        msg = 'User picked %d particles ' % output.getSize()
+        msg = 'User picked %d particles ' % self.outputTargetSet.getSize()
         return msg
 
     def _methods(self):
@@ -166,7 +128,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         methodsMsgs.append("Input tomograms imported of dims %s." % (
             str(self.inputTomograms.get().getDim())))
 
-        if self.getOutputsSize() >= 1:
+        if self.outputTargetSet.getSize() >= 1:
             for key, output in self.iterOutputAttributes():
                 msg = self.getMethods(output)
                 methodsMsgs.append("%s: %s" % (self.getObjectTag(output), msg))
@@ -174,3 +136,22 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             methodsMsgs.append(Message.TEXT_NO_OUTPUT_CO)
 
         return methodsMsgs
+
+    # --------------------------- UTILS functions ----------------------
+    def _genOutputData(self, fileList, suffix):
+        outputSetOfTomo = self._createSetOfTomograms(suffix=suffix)
+        outputSetOfTomo.copyInfo(self.inputTomograms.get())
+        for i, inTomo in enumerate(self.inputTomograms.get()):
+            tomo = Tomogram()
+            tomo.setLocation(self._getExtraPath(fileList[i]))
+            tomo.setSamplingRate(inTomo.getSamplingRate())
+            outputSetOfTomo.append(tomo)
+
+        return outputSetOfTomo
+
+    @staticmethod
+    def _genOutputFileName(tomo, binned=False):
+        binStr = ''
+        if binned:
+            binStr = '_binned'
+        return 'segmentation_' + removeBaseExt(tomo.getFileName()) + '%s.mrc' % binStr

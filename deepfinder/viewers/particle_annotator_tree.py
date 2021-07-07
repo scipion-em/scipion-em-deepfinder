@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # **************************************************************************
 # *
-# * Authors:     you (you@yourinstitution.email)
+# * Authors:     Scipion Team
 # *
 # * your institution
 # *
@@ -21,22 +21,29 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'scipion@cnb.csic.es'
+# *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from os.path import join, isfile
 
-"""
-@article{EMMANUEL2020,
-title = "3D ConvNet improves macromolecule localization in 3Dcellular cryo-electron tomograms",
-journal = ".",
-volume = ".",
-number = ".",
-pages = ".",
-year = ".",
-issn = ".",
-doi = " http://doi.org/10.1101/2020.04.15.042747",
-url = "http://www.biorxiv.org/content/10.1101/2020.04.15.042747v1",
-author = "Emmanuel Moebel, Antonio Martinez, Damien Larivière, Julio Ortiz, Wolfgang Baumeister, Charles Kervrann",
-}
+from pyworkflow.utils import removeBaseExt
+from tomo.viewers.views_tkinter_tree import TomogramsTreeProvider
 
-"""
+
+class ParticleAnnotatorProvider(TomogramsTreeProvider):
+
+    def getObjectInfo(self, inTomo):
+        tomogramName = removeBaseExt(inTomo.getFileName())
+        filePath = join(self._path, "objl_annot_" + tomogramName + ".xml")
+
+        if not isfile(filePath):
+            return {'key': tomogramName, 'parent': None,
+                    'text': tomogramName, 'values': "PENDING",
+                    'tags': "pending"}
+        else:
+            return {'key': tomogramName, 'parent': None,
+                    'text': tomogramName, 'values': "DONE",
+                    'tags': "done"}
+
+    def getColumns(self):
+        return [('Tomograms', 300), ('status', 150)]

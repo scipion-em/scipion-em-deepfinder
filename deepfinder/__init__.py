@@ -23,17 +23,21 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+from os.path import join
 
 import pwem
+from pyworkflow.utils import Environ
 
 from .constants import *
-
+__version__ = '3.0.0'
 _logo = "icon.png"
 _references = ['EMMANUEL2020']
+
 
 class Plugin(pwem.Plugin):
     _homeVar = DF_HOME
     _pathVars = [DF_HOME]
+    _url = 'https://deepfinder.readthedocs.io/en/latest/guide.html'
 
     @classmethod
     def _defineVariables(cls):
@@ -41,18 +45,25 @@ class Plugin(pwem.Plugin):
         cls._defineVar(DF_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
 
     @classmethod
-    def getEnviron(cls):
-        pass
+    def getEnviron(cls, gpuId='0'):
+        """ Setup the environment variables needed to launch deepfinder. """
+        environ = Environ(os.environ)
+        if 'PYTHONPATH' in environ:
+            # this is required for python virtual env to work
+            del environ['PYTHONPATH']
+
+        environ.update({'CUDA_VISIBLE_DEVICES': gpuId})
+        return environ
 
     @classmethod
     def getDeepFinderEnvActivation(cls):
         return cls.getVar(DF_ENV_ACTIVATION)
 
     @classmethod
-    def runDeepFinder(cls, protocol, program, args, cwd=None):
+    def runDeepFinder(cls, protocol, program, args, cwd=None, gpuId='0'):
         program = cls.getDeepFinderProgram(program)
         fullProgram = '%s %s && %s' % (cls.getCondaActivationCmd(), cls.getDeepFinderEnvActivation(), program)
-        protocol.runJob(fullProgram, args, env=cls.getEnviron(), cwd=cwd)
+        protocol.runJob(fullProgram, args, env=cls.getEnviron(gpuId=gpuId), cwd=cwd)
 
     @classmethod
     def getDeepFinderProgram(cls, program):
@@ -71,7 +82,6 @@ class Plugin(pwem.Plugin):
     def defineBinaries(cls, env):
         cls.addDeepFinderPackage(env, DF_VERSION)
 
-
     @classmethod
     def addDeepFinderPackage(cls, env, version):
 
@@ -81,14 +91,14 @@ class Plugin(pwem.Plugin):
         installationCmd = cls.getCondaActivationCmd()
 
         # Create the environment
-        installationCmd += 'conda create -y -n %s -c anaconda python=3.6 && ' \
+        installationCmd += 'conda create -y -n %s -c anaconda python=3.6 cudnn=7.6.0=cuda10.0_0 && ' \
                            % env_name
 
         # Activate new the environment
         installationCmd += 'conda activate %s && ' % env_name
 
         # Install downloaded code
-        installationCmd += 'pip install -r requirements.txt && ' # for GPU usage should be requirements_gpu.txt
+        installationCmd += 'pip install -r requirements_gpu.txt && '  # for GPU usage should be requirements_gpu.txt
 
         # Flag installation finished
         installationCmd += 'touch %s' % DF_INSTALLED
@@ -101,6 +111,20 @@ class Plugin(pwem.Plugin):
                        buildDir='deep-finder-master',
                        neededProgs=cls.getDependencies(),
                        default=True)
+
+    @classmethod
+    def getDeepFinderCmd(cls, program):
+        """ Composes a DeepFinder command for a given program. """
+
+        # Program to run
+        program = cls.getDeepFinderProgram(program)
+
+        fullProgram = '%s %s && %s' % (cls.getCondaActivationCmd(), cls.getDeepFinderEnvActivation(), program)
+
+        # Command to run
+        cmd = fullProgram
+
+        return cmd
 
 
 

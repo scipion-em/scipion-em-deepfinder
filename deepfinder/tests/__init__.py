@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # **************************************************************************
 # *
-# * Authors:     you (you@yourinstitution.email)
+# * Authors: Emmanuel Moebel (emmanuel.moebel@inria.fr)
 # *
-# * your institution
+# * Inria - Centre de Rennes Bretagne Atlantique, France
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -21,22 +21,20 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'scipion@cnb.csic.es'
+# *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
 
-"""
-@article{EMMANUEL2020,
-title = "3D ConvNet improves macromolecule localization in 3Dcellular cryo-electron tomograms",
-journal = ".",
-volume = ".",
-number = ".",
-pages = ".",
-year = ".",
-issn = ".",
-doi = " http://doi.org/10.1101/2020.04.15.042747",
-url = "http://www.biorxiv.org/content/10.1101/2020.04.15.042747v1",
-author = "Emmanuel Moebel, Antonio Martinez, Damien Larivière, Julio Ortiz, Wolfgang Baumeister, Charles Kervrann",
-}
+from pyworkflow.tests import DataSet
 
-"""
+DataSet(name='deepfinder', folder='deepfinder',
+        files={
+               'tomo0': 'tomo0.mrc',
+               'tomo1': 'tomo1.mrc',
+               'cropped_tomo0': 'cropped_tomo0.mrc',
+               'tomomask0': 'target0.mrc',
+               'tomomask1': 'target1.mrc',
+               'coordset0': 'tomo0.xml',
+               'coordset1': 'tomo1.xml',
+               'trainmodel': 'net_weights_SHREC2019_4B4T.h5'
+        })

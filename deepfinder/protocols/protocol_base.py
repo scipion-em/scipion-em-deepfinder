@@ -24,12 +24,15 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-
+from tomo.constants import BOTTOM_LEFT_CORNER
+from tomo.objects import SetOfTomograms
 from tomo.protocols import ProtTomoBase
 import deepfinder.objects
 import deepfinder.convert as cv
 
+
 class ProtDeepFinderBase(ProtTomoBase):
+
     def _createSetOfDeepFinderSegmentations(self, suffix=''):
         return self._createSet(deepfinder.objects.SetOfDeepFinderSegmentations,
                                'segmentations%s.sqlite', suffix)
@@ -41,26 +44,51 @@ class ProtDeepFinderBase(ProtTomoBase):
         coord3DSet.setPrecedents(volSet)
         return coord3DSet
 
-    def _getObjlFromInputCoordinates(self, inputCoordinates, tomoname_list):
+    @staticmethod
+    def _getObjlFromInputCoordinates(coord3DSet):
         """Get all objects of specified class.
-
         Args:
-            inputCoordinates (MultiPointerParam)
-            tomoname_list (list of strings): ['/path/to/tomo1.mrc', '/path/to/tomo2.mrc', '/path/to/tomo3.mrc']
+            tomoSet (SetOfTomograms)
+            coord3DSet (SetOfCoordinates3D)
         Returns:
             list of dict: deep finder object list (contains particle infos)
         """
-        l = 1  # one class/setOfCoordinate3D. Class labels are reassigned here, and may not correspond to the label from annotation step.
         objl = []
-        for pointer in inputCoordinates:
-            coord3DSet = pointer.get()
-            for coord in coord3DSet.iterItems():
-                x = coord.getX()
-                y = coord.getY()
-                z = coord.getZ()
-                lbl = l
-                tidx = tomoname_list.index(coord.getVolName())
-                cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tidx)
-            l += 1
+        tomoList = [tomo.clone() for tomo in coord3DSet.getPrecedents()]
+        for tomo in tomoList:
+            tomoId = tomo.getObjId()
+            for coord in coord3DSet.iterCoordinates(volume=tomoId):
+                x = coord.getX(BOTTOM_LEFT_CORNER)
+                y = coord.getY(BOTTOM_LEFT_CORNER)
+                z = coord.getZ(BOTTOM_LEFT_CORNER)
+                lbl = int(str(coord._dfLabel))
+                cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tomoId)
+
         return objl
+
+    @staticmethod
+    def _getObjlFromInputCoordinatesV2(tomoSet, coord3DSet): # emoebel : I modified a bit to suit my needs
+        """Get all Coord objects related to the given Tomogram objects.
+        The output is an objl as needed by DeepFinder.
+        The tomo_idx in the objl respects the order in tomoSet, which is important for the Train protocol
+        Args:
+            tomoSet (SetOfTomograms)
+            coord3DSet (SetOfCoordinates3D)
+        Returns:
+            list of dict: deep finder object list (contains particle infos)
+        """
+        # /!\ tidx is tomo index for object list, tomoId is tomo index for SetOfCoordinates3D. Not the same !!
+        objl = []
+        for tidx, tomo in enumerate(tomoSet):
+            tomoId = tomo.getObjId()
+            for coord in coord3DSet.iterCoordinates(volume=tomoId):
+                x = coord.getX(BOTTOM_LEFT_CORNER)
+                y = coord.getY(BOTTOM_LEFT_CORNER)
+                z = coord.getZ(BOTTOM_LEFT_CORNER)
+                lbl = int(str(coord._dfLabel))
+                cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tidx)
+
+        return objl
+
+
 

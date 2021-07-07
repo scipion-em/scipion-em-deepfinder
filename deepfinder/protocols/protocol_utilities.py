@@ -24,6 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from pyworkflow import BETA
 from pyworkflow.protocol import Protocol, params, IntParam, EnumParam, PointerParam
 from pyworkflow.utils.properties import Message
 from tomo.protocols import ProtTomoPicking
@@ -32,19 +33,17 @@ from tomo.objects import Coordinate3D, Tomogram
 from deepfinder.protocols import ProtDeepFinderBase
 from deepfinder import Plugin
 import deepfinder.convert as cv
-from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
+# from deepfinder.objects import DeepFinderSegmentation, SetOfDeepFinderSegmentations
 
 import os
 
-"""
-Describe your python module here:
-This module will provide the traditional Hello world example
-"""
 
 class DeepFinderDisplay(Protocol):
     """ This protocol allows you to explore tomograms or segmentation maps with ortho-slices. The seegmentation map
     can be superimposed to the tomogram. Useful for visualising your results."""
+
     _label = 'display volume'
+    _devStatus = BETA
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
