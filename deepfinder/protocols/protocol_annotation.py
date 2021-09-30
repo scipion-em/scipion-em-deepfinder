@@ -107,8 +107,8 @@ class DeepFinderAnnotations(ProtTomoPicking):
 
                 coord = Coordinate3D()
                 coord.setObjId(coordCounter + 1)
-                coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                 coord.setVolume(tomo)
+                coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                 coord.setVolId(tidx + 1)
                 coord._dfLabel = String(str(lbl))
 
