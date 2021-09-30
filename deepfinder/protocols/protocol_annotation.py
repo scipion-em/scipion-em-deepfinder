@@ -27,6 +27,7 @@
 from os.path import abspath
 from pyworkflow import BETA
 from pyworkflow.object import String, Integer
+from pyworkflow.protocol import IntParam
 from pyworkflow.utils import removeBaseExt
 from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.protocols import ProtTomoPicking
@@ -52,6 +53,9 @@ class DeepFinderAnnotations(ProtTomoPicking):
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         ProtTomoPicking._defineParams(self, form)
+        from pyworkflow.protocol import LEVEL_ADVANCED
+        form.addParam('boxSize', IntParam, label="Box size", expertLevel=LEVEL_ADVANCED,
+                      help='Defualt box size for the output.', default=50)
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -80,16 +84,17 @@ class DeepFinderAnnotations(ProtTomoPicking):
         setTomograms = self.inputTomograms.get()
         coord3DSet = self._createSetOfCoordinates3D(setTomograms)
         coord3DSet.setSamplingRate(setTomograms.getSamplingRate())
+        coord3DSet.setBoxSize(self.boxSize.get())
 
         coordCounter = 0
         annotationSummary = ''
-        for tidx, tomo in enumerate(setTomograms.iterItems()):
+        for tomo in setTomograms.iterItems():
             # Read objl:
             fname_objl = 'objl_annot_' + removeBaseExt(tomo.getFileName()) + '.xml'
             objl_tomo = cv.objl_read(abspath(self._getExtraPath(fname_objl)))
 
             # Generate string for protocol summary:
-            msg = 'Tomogram ' + str(tidx + 1) + ': a total of ' + \
+            msg = 'Tomogram ' + tomo.getFileName() + ': a total of ' + \
                   str(len(objl_tomo)) + ' objects has been annotated.'
             annotationSummary += msg
             lbl_list = cv.objl_get_labels(objl_tomo)
@@ -109,8 +114,9 @@ class DeepFinderAnnotations(ProtTomoPicking):
                 coord.setObjId(coordCounter + 1)
                 coord.setVolume(tomo)
                 coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
-                coord.setVolId(tidx + 1)
+                coord.setVolId(tomo.getObjId())
                 coord._dfLabel = String(str(lbl))
+                coord.setBoxSize(self.boxSize.get())
 
                 coord3DSet.append(coord)
                 coordCounter += 1
