@@ -2,7 +2,7 @@
 Deepfinder plugin for Scipion
 =============================
 
-Deepfinder provides a deeplearning picking workflow for cryoelectron microscopy tomography data.
+Deepfinder_ provides a deeplearning picking workflow for cryoelectron microscopy tomography data.
 
 =====
 Setup
@@ -28,4 +28,7 @@ For example:
 .. code-block::
 
     CONDA_ACTIVATION_CMD = . ~/anaconda3/etc/profile.d/conda.sh
+
+
+.. _Deepfinder: https://gitlab.inria.fr/serpico/deep-finder
 
