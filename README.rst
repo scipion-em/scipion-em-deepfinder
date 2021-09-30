@@ -29,6 +29,12 @@ For example:
 
     CONDA_ACTIVATION_CMD = . ~/anaconda3/etc/profile.d/conda.sh
 
+Video tutorials
+---------------
+
+A playlist_ was created in I2PC Youtube channel to show how to use Deepfinder plugin in Scipion.
+
 
 .. _Deepfinder: https://gitlab.inria.fr/serpico/deep-finder
+.. _playlist: https://www.youtube.com/watch?v=20Xxs6zZS3k&list=PLyJiuGnB9hAx5_GBfgSQza9FEFMZKW7Rz
 
