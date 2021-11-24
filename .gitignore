@@ -1,5 +1,7 @@
 # Ignore temporary packaging folder
 *.egg-info
 
+__pycache__/
+
 # IDE files
 .idea
