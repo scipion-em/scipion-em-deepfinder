@@ -23,12 +23,12 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from os.path import join
-
+import os
 import pwem
 from pyworkflow.utils import Environ
-
 from .constants import *
+
+
 __version__ = '3.0.0'
 _logo = "icon.png"
 _references = ['EMMANUEL2020']
@@ -91,14 +91,24 @@ class Plugin(pwem.Plugin):
         installationCmd = cls.getCondaActivationCmd()
 
         # Create the environment
-        installationCmd += 'conda create -y -n %s -c anaconda python=3.6 cudnn=7.6.0=cuda10.0_0 && ' \
+        installationCmd += 'conda create -y -n %s -c conda-forge -c anaconda python=3.6 cudnn=8.1 ' \
+                           'numpy=1.19.5 scikit-learn=0.21.2 scikit-image=0.15.0 && ' \
                            % env_name
 
         # Activate new the environment
         installationCmd += 'conda activate %s && ' % env_name
 
         # Install downloaded code
-        installationCmd += 'pip install -r requirements_gpu.txt && '  # for GPU usage should be requirements_gpu.txt
+        # installationCmd += 'pip install -r requirements_gpu.txt && '  # for GPU usage should be requirements_gpu.txt
+        installationCmd += 'pip install tensorflow-gpu==2.6.0 && '
+        installationCmd += 'pip install h5py==3.1.0 && '
+        installationCmd += 'pip install lxml==4.3.4 && '
+        installationCmd += 'pip install matplotlib==3.1.0 && '
+        installationCmd += 'pip install PyQt5==5.13.2 && '
+        installationCmd += 'pip install pyqtgraph==0.10.0 && '
+        installationCmd += 'pip install openpyxl==3.0.3 && '
+        installationCmd += 'pip install scipy==1.5.4 && '
+        installationCmd += 'pip install pycm && '
 
         # Flag installation finished
         installationCmd += 'touch %s' % DF_INSTALLED
