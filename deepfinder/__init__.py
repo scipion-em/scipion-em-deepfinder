@@ -102,6 +102,7 @@ class Plugin(pwem.Plugin):
         # installationCmd += 'pip install -r requirements_gpu.txt && '  # for GPU usage should be requirements_gpu.txt
         installationCmd += 'pip install tensorflow-gpu==2.6.0 && '
         installationCmd += 'pip install keras==2.6 && '
+        installationCmd += 'pip install mrcfile && '
         installationCmd += 'pip install h5py==3.1.0 && '
         installationCmd += 'pip install lxml==4.3.4 && '
         installationCmd += 'pip install matplotlib==3.1.0 && '
