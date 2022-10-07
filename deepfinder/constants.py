@@ -27,14 +27,13 @@
 This file contains constants related to scipion-em-dynamo protocols
 """
 
-import os
-from subprocess import check_output
 
 def getDFEnvName(version):
     return "deepfinder-%s" % version
 
+
 DF_HOME = 'DF_HOME'
-DF_VERSION = '0.1'
+DF_VERSION = '0.2'
 DF_FOLDER = 'deepfinder'
 DEFAULT_ENV_NAME = getDFEnvName(DF_VERSION)
 DEFAULT_ACTIVATION_CMD = 'conda activate ' + DEFAULT_ENV_NAME
