@@ -54,13 +54,13 @@ class TestDeepFinderImportCoordinates(BaseTest):
 
         self.launchProtocol(protImportTomogram)
 
-        output = getattr(protImportTomogram, 'outputTomograms', None)
+        output = getattr(protImportTomogram, 'Tomograms', None)
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Define and launch test protocol:
         protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
-                                                   importTomograms=protImportTomogram.outputTomograms,
+                                                   importTomograms=protImportTomogram.Tomograms,
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
 
@@ -96,13 +96,13 @@ class TestDeepFinderGenSphereTarget(BaseTest):
 
         self.launchProtocol(protImportTomogram)
 
-        output = getattr(protImportTomogram, 'outputTomograms', None)
+        output = getattr(protImportTomogram, 'Tomograms', None)
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Get coordinates:
         protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
-                                                   importTomograms=protImportTomogram.outputTomograms,
+                                                   importTomograms=protImportTomogram.Tomograms,
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
 
@@ -149,13 +149,13 @@ class TestDeepFinderTrain(BaseTest):
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)
-        output = getattr(protImportTomogram, 'outputTomograms', None)
+        output = getattr(protImportTomogram, 'Tomograms', None)
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Get coordinates:
         protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
-                                                   importTomograms=protImportTomogram.outputTomograms,
+                                                   importTomograms=protImportTomogram.Tomograms,
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
         output = getattr(protImportCoordinates3d, 'outputCoordinates', None)
@@ -221,7 +221,7 @@ class TestDeepFinderSegment(BaseTest):
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)
-        output = getattr(protImportTomogram, 'outputTomograms', None)
+        output = getattr(protImportTomogram, 'Tomograms', None)
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Get model weights:
@@ -234,7 +234,7 @@ class TestDeepFinderSegment(BaseTest):
 
         # Define and launche test protocol:
         protSegment = self.newProtocol(deepfinder.protocols.DeepFinderSegment,
-                                       inputTomograms=protImportTomogram.outputTomograms,
+                                       inputTomograms=protImportTomogram.Tomograms,
                                        weights=protImportModel.netWeights,
                                        psize=80)
         self.launchProtocol(protSegment)
@@ -266,13 +266,13 @@ class TestDeepFinderCluster(BaseTest):
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)
-        output = getattr(protImportTomogram, 'outputTomograms', None)
+        output = getattr(protImportTomogram, 'Tomograms', None)
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Get coordinates:
         protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
-                                                   importTomograms=protImportTomogram.outputTomograms,
+                                                   importTomograms=protImportTomogram.Tomograms,
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
         output = getattr(protImportCoordinates3d, 'outputCoordinates', None)
