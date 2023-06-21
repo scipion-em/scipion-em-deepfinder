@@ -24,6 +24,8 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from deepfinder import DF_CLASS_LABEL
+from pyworkflow.object import Integer
 from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.objects import SetOfTomograms
 from tomo.protocols import ProtTomoBase
@@ -61,10 +63,11 @@ class ProtDeepFinderBase(ProtTomoBase):
                 x = coord.getX(BOTTOM_LEFT_CORNER)
                 y = coord.getY(BOTTOM_LEFT_CORNER)
                 z = coord.getZ(BOTTOM_LEFT_CORNER)
-                lbl = int(str(coord._dfLabel))
+                lbl = getattr(coord, DF_CLASS_LABEL, Integer(1)).get()  # If not coming from DF, all the coordinates
+                # will be considered to correspond to particles of the same class
                 cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tomoId)
 
-        return objl
+        return objl, tomoList
 
     @staticmethod
     def _getObjlFromInputCoordinatesV2(tomoSet, coord3DSet): # emoebel : I modified a bit to suit my needs
@@ -85,7 +88,8 @@ class ProtDeepFinderBase(ProtTomoBase):
                 x = coord.getX(BOTTOM_LEFT_CORNER)
                 y = coord.getY(BOTTOM_LEFT_CORNER)
                 z = coord.getZ(BOTTOM_LEFT_CORNER)
-                lbl = int(str(coord._dfLabel))
+                lbl = getattr(coord, DF_CLASS_LABEL, Integer(1)).get()  # If not coming from DF, all the coordinates
+                # will be considered to correspond to particles of the same class
                 cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tidx)
 
         return objl
