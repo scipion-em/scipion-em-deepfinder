@@ -63,7 +63,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         self.tomoSet = None
         self.coord3DSet = None
         self.objlTomoList = None
-        self.tomoList = None
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -91,21 +90,25 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         # Insert processing steps
-        self._initialize()
+        tomoDictList = self._initialize()
         counter = 0
         launchIdList = []
-        for tomo in self.tomoList:
-            launchId = self._insertFunctionStep(self.launchTargetGenerationStep, tomo, counter, prerequisites=[])
+        for tomoDict in tomoDictList:
+            launchId = self._insertFunctionStep(self.launchTargetGenerationStep, tomoDict, prerequisites=[])
             launchIdList.append(launchId)
             counter += 1
-        self._insertFunctionStep(self.createOutputStep, self.tomoList, prerequisites=launchIdList)
+        self._insertFunctionStep(self.createOutputStep, tomoDictList, prerequisites=launchIdList)
 
     def _initialize(self):
         self.coord3DSet = self.inputCoordinates.get()
         self.tomoSet = self.coord3DSet.getPrecedents()
-        self.objlTomoList, self.tomoList = self._getObjlFromInputCoordinates(self.coord3DSet)
+        return self._getObjlFromInputCoordinates(self.coord3DSet)
 
-    def launchTargetGenerationStep(self, tomo, tidx):
+    def launchTargetGenerationStep(self, tomoDict):
+        tomo = tomoDict[self.TOMO]
+        objl_tomo = tomoDict[self.OBJL]
+        fname_params = tomoDict[self.PARAMS_XML]
+
         logger.info(f'Target generation step of ---> {tomo.getTsId()}')
         # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
         param = cv.ParamsGenTarget()
@@ -115,16 +118,9 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         radius_list_string = self.sphereRadii.get()
         radius_list = [int(r) for r in radius_list_string.split(',')]
         param.radius_list = radius_list
-        # Set optional volume for target initialization:
-        # if self.initialVolume.get():  # TODO should be 1 initial vol per target
-        #    param.path_initial_vol = self.initialVolume.get().getFileName()
 
-        # objl_tomoList = self._getObjlFromInputCoordinates(self.inputCoordinates.get())
-
-        # --------------------------------------------------------------------------------------------------------------
         # Get objl for tomogram and save objl to extra folder:
-        objl_tomo = cv.objl_get_tomo(self.objlTomoList, tomo.getObjId())
-        fname_objl = abspath(self._getExtraPath('objl.xml'))
+        fname_objl = abspath(self._getExtraPath(f'objl_{tomo.getTsId()}.xml'))
         cv.objl_write(objl_tomo, fname_objl)
 
         param.path_objl = fname_objl
@@ -137,21 +133,22 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         param.path_target = abspath(self.getTargetName(tomo))
 
         # Save the parameter file:
-        fname_params = abspath(self._getExtraPath('params_target_generation_%i.xml' % tidx))
+        fname_params = abspath(self._getExtraPath(fname_params))
         param.write(fname_params)
 
         # Launch DeepFinder target generation:
         deepfinder_args = '-p ' + fname_params
         Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
-    def createOutputStep(self, tomoList):
+    def createOutputStep(self, tomoDictList):
         logger.info('Generating the outputs...')
         targetSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
         targetSet.copyInfo(self.tomoSet)
         setattr(self, self._possibleOutputs.segmentedTargets.name, targetSet)
 
         # Import generated target from tmp folder and store into segmentation object:
-        for tomo in tomoList:
+        for tomoDict in tomoDictList:
+            tomo = tomoDict[self.TOMO]
             tomoMaskName = self.getTargetName(tomo)
             fixVolume(tomoMaskName)
             target = TomoMask()

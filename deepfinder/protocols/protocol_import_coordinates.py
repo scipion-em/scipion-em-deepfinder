@@ -47,7 +47,7 @@ class DFImportCoordsOutputs(Enum):
 class ImportCoordinates3D(ProtTomoImportFiles):
     """Protocol to import a DeepFinder object list as a set of 3D coordinates in Scipion"""
 
-    _label = 'import coordinates'
+    _label = 'import DeepFInder coordinates'
     _devStatus = BETA
     _possibleOutputs = DFImportCoordsOutputs
 

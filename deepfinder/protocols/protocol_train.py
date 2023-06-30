@@ -124,7 +124,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                       default=True,
                       label='Bootstrap',
                       important=True,
-                      help='Can remain checked. Usefull when in presence of unbalanced classes.')
+                      help='Can remain checked. Useful when in presence of unbalanced classes.')
 
         form.addParam('rndShift', params.IntParam,
                       default=13,

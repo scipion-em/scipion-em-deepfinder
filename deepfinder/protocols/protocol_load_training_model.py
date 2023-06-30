@@ -1,9 +1,14 @@
+from enum import Enum
+
 from pwem.protocols import EMProtocol, FileParam
 from pyworkflow import BETA
 from pyworkflow.protocol import IntParam, GT
 from pyworkflow.utils import Message
-
 from deepfinder.objects import DeepFinderNet
+
+
+class DFImportModelOutputs(Enum):
+    netWeights = DeepFinderNet
 
 
 class ProtDeepFinderLoadTrainingModel(EMProtocol):
@@ -11,6 +16,7 @@ class ProtDeepFinderLoadTrainingModel(EMProtocol):
 
     _label = 'Load Training Model'
     _devStatus = BETA
+    _possibleOutputs = DFImportModelOutputs
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -33,13 +39,13 @@ class ProtDeepFinderLoadTrainingModel(EMProtocol):
                       help='Number of classes corresponding to this model (background included).')
 
     def _insertAllSteps(self):
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.createOutputStep)
 
     def createOutputStep(self):
         netWeights = DeepFinderNet()
         netWeights.setPath(self.netWeightsFile.get())
         netWeights.setNbOfClasses(self.numClasses.get())
-        self._defineOutputs(netWeights=netWeights)
+        self._defineOutputs(**{self._possibleOutputs.netWeights.name: netWeights})
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):

@@ -35,6 +35,10 @@ import deepfinder.convert as cv
 
 class ProtDeepFinderBase(ProtTomoBase):
 
+    TOMO = 'tomo'
+    OBJL = 'objl'
+    PARAMS_XML = 'paramsXml'
+
     def _createSetOfDeepFinderSegmentations(self, suffix=''):
         return self._createSet(deepfinder.objects.SetOfDeepFinderSegmentations,
                                'segmentations%s.sqlite', suffix)
@@ -55,19 +59,23 @@ class ProtDeepFinderBase(ProtTomoBase):
         Returns:
             list of dict: deep finder object list (contains particle infos)
         """
-        objl = []
+        objlListDict = []
         tomoList = [tomo.clone() for tomo in coord3DSet.getPrecedents()]
-        for tomo in tomoList:
-            tomoId = tomo.getObjId()
-            for coord in coord3DSet.iterCoordinates(volume=tomoId):
+        for tomoInd, tomo in enumerate(tomoList):
+            objl = []
+            for coord in coord3DSet.iterCoordinates(volume=tomo):
                 x = coord.getX(BOTTOM_LEFT_CORNER)
                 y = coord.getY(BOTTOM_LEFT_CORNER)
                 z = coord.getZ(BOTTOM_LEFT_CORNER)
                 lbl = getattr(coord, DF_CLASS_LABEL, Integer(1)).get()  # If not coming from DF, all the coordinates
                 # will be considered to correspond to particles of the same class
-                cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tomoId)
+                cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tomoInd)
+            objlListDict.append({ProtDeepFinderBase.TOMO: tomo.clone(),
+                                 ProtDeepFinderBase.OBJL: objl,
+                                 ProtDeepFinderBase.PARAMS_XML: f'params_target_generation_{tomoInd + 1}.xml'
+                                 })
 
-        return objl, tomoList
+        return objlListDict
 
     @staticmethod
     def _getObjlFromInputCoordinatesV2(tomoSet, coord3DSet): # emoebel : I modified a bit to suit my needs

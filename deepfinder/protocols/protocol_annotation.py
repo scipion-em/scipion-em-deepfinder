@@ -24,6 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from enum import Enum
 from os.path import abspath
 from pyworkflow import BETA
 from pyworkflow.object import String, Integer
@@ -31,18 +32,23 @@ from pyworkflow.protocol import IntParam
 from pyworkflow.utils import removeBaseExt
 from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.protocols import ProtTomoPicking
-from tomo.objects import Coordinate3D
+from tomo.objects import Coordinate3D, SetOfCoordinates3D
 
 import deepfinder.convert as cv
 from deepfinder.viewers.particle_annotator_tomo_viewer import ParticleAnnotatorDialog
 from deepfinder.viewers.particle_annotator_tree import ParticleAnnotatorProvider
 
 
+class DFAnnotateOutputs(Enum):
+    coordinates = SetOfCoordinates3D
+
+
 class DeepFinderAnnotations(ProtTomoPicking):
     """This protocol allows you to annotate macromolecules in your tomograms, using a visual tool."""
 
-    _label = 'annotate'
+    _label = 'annotate particles'
     _devStatus = BETA
+    _possibleOutputs = DFAnnotateOutputs
 
     def __init__(self, **args):
         ProtTomoPicking.__init__(self, **args)
@@ -60,8 +66,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._initialize()
-        self._insertFunctionStep('launchAnnotationStep', interactive=True)
-        # self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.launchAnnotationStep, interactive=True)
 
     # --------------------------- STEPS functions -----------------------------
     def launchAnnotationStep(self):
@@ -121,7 +126,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
                 coord3DSet.append(coord)
                 coordCounter += 1
 
-        self._defineOutputs(outputCoordinates=coord3DSet)
+        self._defineOutputs(**{self._possibleOutputs.coordinates.name: coord3DSet})
         self._defineSourceRelation(setTomograms, coord3DSet)
 
     # --------------------------- DEFINE info functions ----------------------

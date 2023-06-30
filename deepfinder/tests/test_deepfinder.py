@@ -106,12 +106,12 @@ class TestDeepFinderGenSphereTarget(BaseTest):
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
 
-        output = getattr(protImportCoordinates3d, 'outputCoordinates', None)
+        output = getattr(protImportCoordinates3d, protImportCoordinates3d._possibleOutputs.coordinates.name, None)
         self.assertIsNotNone(output, "There was a problem with coordinate output")
 
         # Define and launch test protocol:
         protGenTargets = self.newProtocol(deepfinder.protocols.DeepFinderGenerateTrainingTargetsSpheres,
-                                          inputCoordinates=protImportCoordinates3d.outputCoordinates,
+                                          inputCoordinates=output,
                                           sphereRadii=10)
 
         self.launchProtocol(protGenTargets)
@@ -229,7 +229,7 @@ class TestDeepFinderSegment(BaseTest):
                                            netWeightsFile=self.dataset.getPath()+'/net_weights_SHREC2019_4B4T.h5',
                                            numClasses=2)
         self.launchProtocol(protImportModel)
-        output = getattr(protImportModel, 'netWeights', None)
+        output = getattr(protImportModel, protImportModel._possibleOutputs.netWeights.name, None)
         self.assertIsNotNone(output, "There was a problem with import model output")
 
         # Define and launche test protocol:
@@ -243,7 +243,7 @@ class TestDeepFinderSegment(BaseTest):
 
     def test_segment(self):
         protSegment = self._runDeepFinderSegment()
-        output = getattr(protSegment, 'outputTargetSet', None)
+        output = getattr(protSegment, protSegment._possibleOutputs.segmentations.name, None)
 
         self.assertTrue(output, "There was a problem with segmentation output (SetOfTomoMasks)")
 
@@ -275,21 +275,21 @@ class TestDeepFinderCluster(BaseTest):
                                                    importTomograms=protImportTomogram.Tomograms,
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
-        output = getattr(protImportCoordinates3d, 'outputCoordinates', None)
+        output = getattr(protImportCoordinates3d, protImportCoordinates3d._possibleOutputs.coordinates.name, None)
         self.assertIsNotNone(output, "There was a problem with coordinate output")
 
         # Get tomo masks (targets):
         protGenTargets = self.newProtocol(deepfinder.protocols.DeepFinderGenerateTrainingTargetsSpheres,
-                                          inputCoordinates=protImportCoordinates3d.outputCoordinates,
+                                          inputCoordinates=output,
                                           sphereRadii=10)
 
         self.launchProtocol(protGenTargets)
-        output = getattr(protGenTargets, 'outputTargetSet', None)
+        output = getattr(protGenTargets, protGenTargets._possibleOutputs.segmentedTargets.name, None)
         self.assertIsNotNone(output, "There was a problem with target generation output")
 
         # Define and launch test protocol:
         protClust = self.newProtocol(deepfinder.protocols.DeepFinderCluster,
-                                     inputSegmentations=protGenTargets.outputTargetSet,
+                                     inputSegmentations=output,
                                      cradius=10)
         self.launchProtocol(protClust)
 
@@ -297,7 +297,7 @@ class TestDeepFinderCluster(BaseTest):
 
     def test_cluster(self):
         protClust = self._runDeepFinderCluster()
-        output = getattr(protClust, 'outputCoordinates', None)
+        output = getattr(protClust, protClust._possibleOutputs.coordinates.name, None)
 
         self.assertTrue(output, "There was a problem with segmentation map analysis output (coordinates)")
         self.assertTrue(output.getSize() == 155)
