@@ -27,6 +27,7 @@
 from enum import Enum
 from os.path import abspath
 
+from pwem.convert.headers import fixVolume
 from pyworkflow import BETA
 from pyworkflow.object import Set
 from pyworkflow.protocol import params, PointerParam, STEPS_PARALLEL
@@ -151,10 +152,12 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
 
         # Import generated target from tmp folder and store into segmentation object:
         for tomo in tomoList:
+            tomoMaskName = self.getTargetName(tomo)
+            fixVolume(tomoMaskName)
             target = TomoMask()
             target.cleanObjId()
             target.copyInfo(tomo)
-            target.setFileName(self.getTargetName(tomo))
+            target.setFileName(tomoMaskName)
             # Link to origin tomogram:
             target.setVolName(tomo.getFileName())
             targetSet.append(target)

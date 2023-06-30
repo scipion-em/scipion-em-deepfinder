@@ -68,7 +68,7 @@ class TestDeepFinderImportCoordinates(BaseTest):
 
     def test_import_set_of_coordinates_3D(self):
         protCoordinates = self._runDeepFinderImportCoordinates()
-        output = getattr(protCoordinates, 'outputCoordinates', None)
+        output = getattr(protCoordinates, protCoordinates._possibleOutputs.coordinates.name, None)
 
         self.assertTrue(output, "There was a problem with coordinates 3d output")
         self.assertTrue(output.getSize() == 347)
@@ -120,7 +120,7 @@ class TestDeepFinderGenSphereTarget(BaseTest):
 
     def test_generate_sphere_targets(self):
         protGenTargets = self._runDeepFinderGenSphereTarget()
-        output = getattr(protGenTargets, 'outputTargetSet', None)
+        output = getattr(protGenTargets, protGenTargets._possibleOutputs.segmentedTargets.name, None)
 
         self.assertTrue(output, "There was a problem with target generation output")
         self.assertTrue(output.getSize() == 2)
@@ -167,12 +167,12 @@ class TestDeepFinderTrain(BaseTest):
                                           sphereRadii=10)
 
         self.launchProtocol(protGenTargets)
-        output = getattr(protGenTargets, 'outputTargetSet', None)
+        output = getattr(protGenTargets, protGenTargets._possibleOutputs.segmentedTargets.name, None)
         self.assertIsNotNone(output, "There was a problem with target generation output")
 
         # Split tomo mask set into train and valid:
         protSplitSets = self.newProtocol(pwem.protocols.ProtSplitSet,
-                                         inputSet=protGenTargets.outputTargetSet,
+                                         inputSet=output,
                                          numberOfSets=2)
         self.launchProtocol(protSplitSets)
         tomoMasksTrain = getattr(protSplitSets, 'outputTomoMasks01')
@@ -199,7 +199,7 @@ class TestDeepFinderTrain(BaseTest):
 
     def test_train(self):
         protTrain = self._runDeepFinderTrain()
-        output = getattr(protTrain, 'netWeights', None)
+        output = getattr(protTrain, protTrain._possibleOutputs.netWeights.name, None)
 
         self.assertTrue(output, "There was a problem with training output (net model weights)")
 

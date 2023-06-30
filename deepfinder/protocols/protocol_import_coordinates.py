@@ -25,6 +25,7 @@
 # *
 # **************************************************************************
 import os
+from enum import Enum
 from os.path import basename
 
 from pyworkflow import BETA
@@ -39,12 +40,16 @@ import pyworkflow.protocol.params as params
 import deepfinder.convert as cv
 
 
+class DFImportCoordsOutputs(Enum):
+    coordinates = SetOfCoordinates3D
+
+
 class ImportCoordinates3D(ProtTomoImportFiles):
     """Protocol to import a DeepFinder object list as a set of 3D coordinates in Scipion"""
 
-    _outputClassName = 'SetOfCoordinates3D'
     _label = 'import coordinates'
     _devStatus = BETA
+    _possibleOutputs = DFImportCoordsOutputs
 
     def _defineParams(self, form):
         ProtTomoImportFiles._defineImportParams(self, form)
@@ -57,7 +62,7 @@ class ImportCoordinates3D(ProtTomoImportFiles):
                            'coordinate files must be the same.')
 
     def _insertAllSteps(self):
-        self._insertFunctionStep('importCoordinatesStep')
+        self._insertFunctionStep(self.importCoordinatesStep)
 
     # --------------------------- STEPS functions -----------------------------
     def importCoordinatesStep(self):
@@ -93,5 +98,5 @@ class ImportCoordinates3D(ProtTomoImportFiles):
 
         coord3DSet.setSamplingRate(importTomograms.getSamplingRate())
 
-        self._defineOutputs(outputCoordinates=coord3DSet)
+        self._defineOutputs(**{self._possibleOutputs.coordinates.name: coord3DSet})
         self._defineSourceRelation(self.importTomograms, coord3DSet)

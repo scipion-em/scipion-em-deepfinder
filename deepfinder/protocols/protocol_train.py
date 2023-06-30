@@ -24,6 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from enum import Enum
 from os.path import abspath
 
 from pwem.protocols import EMProtocol
@@ -39,7 +40,11 @@ from deepfinder.protocols import ProtDeepFinderBase
 from tomo.protocols import ProtTomoBase
 from tomo.objects import SetOfTomoMasks
 
-PSIZE_CHOICES = list(range(40, 65, 4))
+PSIZE_CHOICES = ['40', '44', '48', '52', '56', '60', '64']
+
+
+class DFTrainOutputs(Enum):
+    netWeights = DeepFinderNet
 
 
 class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
@@ -47,6 +52,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
 
     _label = 'train'
     _devStatus = BETA
+    _possibleOutputs = DFTrainOutputs
 
     def __init__(self, **args):
         EMProtocol.__init__(self, **args)
@@ -80,11 +86,11 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                       pointerClass='SetOfCoordinates3D',
                       help='Select coordinate set.')
 
-
         form.addSection(label='Training Parameters')
         form.addParam('psize', params.EnumParam,
+                      display=params.EnumParam.DISPLAY_COMBO,
                       default=0,  # 40: 1st element in [40, 44, 48, 52, 56, 60, 64]
-                      choices=list(range(40, 65, 4)),
+                      choices=PSIZE_CHOICES,
                       label='Patch size',
                       important=True,
                       help='Size of patches loaded into memory for training.')
@@ -135,8 +141,8 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         # Insert processing steps
-        self._insertFunctionStep('trainingStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep(self.trainingStep)
+        self._insertFunctionStep(self.createOutputStep)
 
     def trainingStepOLD(self):
         # Get paths to tomograms and corresponding targets:
@@ -163,7 +169,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         # Save parameters to xml file:
         params = cv.ParamsTrain()
 
-        params.path_out = abspath(self._getExtraPath())+'/'
+        params.path_out = abspath(self._getExtraPath()) + '/'
         params.path_tomo = path_tomo
         params.path_target = path_segm
         params.path_objl_train = fname_objl_train
@@ -229,13 +235,13 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         fname = abspath(self._getExtraPath('net_weights_FINAL.h5'))
         netWeights.setPath(fname)
         netWeights.setNbOfClasses(self.nClass)
-        self._defineOutputs(netWeights=netWeights)
+        self._defineOutputs(**{self._possibleOutputs.netWeights.name: netWeights})
 
     # --------------------------- UTILITY functions -------------------------------- #
     @staticmethod
     def _decodeContValue(idx):
         """Decode the psize value and represent it as expected by DeepFinder"""
-        return PSIZE_CHOICES[idx]
+        return int(PSIZE_CHOICES[idx])
 
     def _getDeepFinderObjectsFromInput(self, tomoMaskSetTrain, tomoMaskSetValid, coord3DSet):
         """Get all objects of specified class.
@@ -263,7 +269,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         Ntrain = tomoMaskSetTrain.__len__()
 
         tidx_list_valid = list(range(Nvalid))
-        tidx_list_train = list(range(Nvalid, Nvalid+Ntrain))
+        tidx_list_train = list(range(Nvalid, Nvalid + Ntrain))
 
         objl_valid = []
         for tidx in tidx_list_valid:
@@ -284,7 +290,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         Returns:
             SetOfTomoMasks
         """
-        #tomoMaskSet = SetOfTomoMasks()
+        # tomoMaskSet = SetOfTomoMasks()
         tomoMaskSet = SetOfTomoMasks.create(path, template='setOfTomoMasks%s.sqlite')
         tomoMaskSet.copyInfo(tomoMaskSet1)
         tomoMaskSet.setName('target set')
@@ -319,7 +325,6 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         summary = []
 
         if self.isFinished():
-
             summary.append("Training finished.")
         return summary
 
