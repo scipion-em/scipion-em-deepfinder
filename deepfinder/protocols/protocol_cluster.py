@@ -70,7 +70,8 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        for ind, tomoMask in enumerate(self.inputSegmentations.get().iterItems()):
+        tomoMasks = [tomoMask.clone() for tomoMask in self.inputSegmentations.get()]
+        for ind, tomoMask in enumerate(tomoMasks):
             self._insertFunctionStep(self.launchClusteringStep, tomoMask)
             self._insertFunctionStep(self.createOutputStep, tomoMask, ind)
 
@@ -120,6 +121,7 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
         # Get tomo corresponding to current tomomask:
         tomo = segm.getTomogram()
+        tomoId = segm.getTsId()
 
         for idx in range(len(objl_tomo)):
             x = objl_tomo[idx]['x']
@@ -131,6 +133,7 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
             coord = Coordinate3D()
             coord.setVolume(tomo)
             coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
+            coord.setTomoId(tomoId)
             coord.setVolId(segmInd + 1)
             coord._dfLabel = String(str(lbl))
             coord._dfScore = Float(score)

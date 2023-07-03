@@ -70,7 +70,8 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        for tomo in self.inputTomograms.get().iterItems():
+        tomoList = [tomo.clone() for tomo in self.inputTomograms.get()]
+        for tomo in tomoList:
             self._insertFunctionStep(self.launchSegmentationStep, tomo)
             self._insertFunctionStep(self.createOutputStep, tomo)
 
