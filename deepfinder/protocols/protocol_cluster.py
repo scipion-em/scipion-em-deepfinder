@@ -31,12 +31,14 @@ from pyworkflow.object import String, Float
 from pyworkflow.protocol import params, PointerParam
 from pyworkflow.utils.properties import Message
 from tomo.constants import BOTTOM_LEFT_CORNER
-from tomo.objects import Coordinate3D, SetOfCoordinates3D
+from tomo.objects import Coordinate3D, SetOfCoordinates3D, SetOfTomograms
 from tomo.protocols import ProtTomoPicking
 from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
 import os
+
+from tomo.utils import getObjFromRelation
 
 
 class DFClusterOutputs(Enum):
@@ -94,9 +96,10 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
         coord3DSet = getattr(self, self._possibleOutputs.coordinates.name, None)
         if not coord3DSet:
             setSegmentations = self.inputSegmentations.get()
+            tomograms = getObjFromRelation(setSegmentations, self, SetOfTomograms)
             coord3DSet = self._createSetOfCoordinates3DWithScore(setSegmentations)
             coord3DSet.setName('Detected objects')
-            coord3DSet.setPrecedents(setSegmentations)
+            coord3DSet.setPrecedents(tomograms)
             coord3DSet.setSamplingRate(setSegmentations.getSamplingRate())
 
         clusteringSummary = ''
