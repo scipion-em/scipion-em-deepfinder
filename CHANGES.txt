@@ -1,0 +1,3 @@
+v3.0.1:
+    - Target generation can be now parallelized using threads.
+    - Fixes in the tomogram/tomomask assignment in the segment and cluster protocols.

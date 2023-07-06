@@ -28,9 +28,9 @@ from pyworkflow.tests import BaseTest, setupTestProject
 
 import tomo.protocols
 import pwem.protocols
-from pyworkflow.utils import magentaStr
 
 import deepfinder.protocols
+from tomo.protocols.protocol_import_tomograms import OUTPUT_NAME
 
 from . import DataSet
 
@@ -149,21 +149,21 @@ class TestDeepFinderTrain(BaseTest):
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)
-        output = getattr(protImportTomogram, 'Tomograms', None)
+        output = getattr(protImportTomogram, OUTPUT_NAME, None)
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Get coordinates:
         protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
-                                                   importTomograms=protImportTomogram.Tomograms,
+                                                   importTomograms=output,
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
-        output = getattr(protImportCoordinates3d, 'outputCoordinates', None)
+        outputCoords = getattr(protImportCoordinates3d, protImportCoordinates3d._possibleOutputs.coordinates.name, None)
         self.assertIsNotNone(output, "There was a problem with coordinate output")
 
         # Get tomo masks (targets):
         protGenTargets = self.newProtocol(deepfinder.protocols.DeepFinderGenerateTrainingTargetsSpheres,
-                                          inputCoordinates=protImportCoordinates3d.outputCoordinates,
+                                          inputCoordinates=outputCoords,
                                           sphereRadii=10)
 
         self.launchProtocol(protGenTargets)
@@ -186,7 +186,7 @@ class TestDeepFinderTrain(BaseTest):
         protTrain = self.newProtocol(deepfinder.protocols.DeepFinderTrain,
                                      tomoMasksTrain=tomoMasksTrain,
                                      tomoMasksValid=tomoMasksValid,
-                                     coord=protImportCoordinates3d.outputCoordinates,
+                                     coord=outputCoords,
                                      psize=0,
                                      bsize=1,
                                      epochs=1,
