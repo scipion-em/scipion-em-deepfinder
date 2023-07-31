@@ -66,23 +66,24 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep('launchSegmentationStep')
+        for tomo in self.inputTomograms.get().iterItems():
+            self._insertFunctionStep('launchSegmentationStep', tomo)
         self._insertFunctionStep('createOutputStep')
 
     # --------------------------- STEPS functions -----------------------------
-    def launchSegmentationStep(self):
-        for tomo in self.inputTomograms.get().iterItems():
-            outputFileName = self._genOutputFileName(tomo, binned=False)
-            self._outputFiles.append(outputFileName)
+    def launchSegmentationStep(self, tomo):
+        #for tomo in self.inputTomograms.get().iterItems():
+        outputFileName = self._genOutputFileName(tomo, binned=False)
+        self._outputFiles.append(outputFileName)
 
-            # Launch annotation GUI passing the tomogram file name
-            deepfinder_args = '-t ' + tomo.getFileName()
-            deepfinder_args += ' -w ' + self.weights.get().getPath() # FIXME: Return object from pointer
-            deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
-            deepfinder_args += ' -p ' + str(self.psize)
-            deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
+        # Launch annotation GUI passing the tomogram file name
+        deepfinder_args = '-t ' + tomo.getFileName()
+        deepfinder_args += ' -w ' + self.weights.get().getPath() # FIXME: Return object from pointer
+        deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
+        deepfinder_args += ' -p ' + str(self.psize)
+        deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
 
-            Plugin.runDeepFinder(self, 'segment', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
+        Plugin.runDeepFinder(self, 'segment', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
 
     def createOutputStep(self):
         tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
