@@ -30,6 +30,7 @@ from os.path import basename
 
 from pyworkflow import BETA
 from pyworkflow.object import String
+from pyworkflow.protocol import LEVEL_ADVANCED
 from tomo.constants import BOTTOM_LEFT_CORNER
 
 from tomo.objects import SetOfCoordinates3D, Coordinate3D
@@ -60,6 +61,11 @@ class ImportCoordinates3D(ProtTomoImportFiles):
                       help='Select the tomograms/tomogram for which you '
                            'want to import coordinates. The file names of the tomogram and '
                            'coordinate files must be the same.')
+        form.addParam('boxSize', params.IntParam,
+                      label="Box size",
+                      expertLevel=LEVEL_ADVANCED,
+                      default=50,
+                      help='Default box size for the output.')
 
     def _insertAllSteps(self):
         self._insertFunctionStep(self.importCoordinatesStep)
@@ -67,10 +73,11 @@ class ImportCoordinates3D(ProtTomoImportFiles):
     # --------------------------- STEPS functions -----------------------------
     def importCoordinatesStep(self):
         importTomograms = self.importTomograms.get()
+        boxSize = self.boxSize.get()
         suffix = self._getOutputSuffix(SetOfCoordinates3D)
         coord3DSet = self._createSetOfCoordinates3D(importTomograms, suffix)
-
         coord3DSet.setPrecedents(importTomograms)
+        coord3DSet.setBoxSize(boxSize)
         coordCounter = 1
         for tomoInd, tomo in enumerate(importTomograms.iterItems()):
             tomoName = basename(os.path.splitext(tomo.getFileName())[0])
@@ -91,6 +98,7 @@ class ImportCoordinates3D(ProtTomoImportFiles):
                         coord.setObjId(coordCounter)
                         coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                         coord.setVolId(tomoInd + 1)
+                        coord.setBoxSize(boxSize)
                         coord._dfLabel = String(str(lbl))
 
                         coord3DSet.append(coord)

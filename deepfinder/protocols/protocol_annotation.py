@@ -61,7 +61,7 @@ class DeepFinderAnnotations(ProtTomoPicking):
         ProtTomoPicking._defineParams(self, form)
         from pyworkflow.protocol import LEVEL_ADVANCED
         form.addParam('boxSize', IntParam, label="Box size", expertLevel=LEVEL_ADVANCED,
-                      help='Defualt box size for the output.', default=50)
+                      help='Default box size for the output.', default=50)
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):

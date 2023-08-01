@@ -36,15 +36,16 @@ class ProtDeepFinderLoadTrainingModel(EMProtocol):
                       important=True,
                       allowsNull=False,
                       validators=[GT(0)],
-                      help='Number of classes corresponding to this model (background included).')
+                      help='Number of classes corresponding to this model.')
 
     def _insertAllSteps(self):
+        self.nClasses = self.numClasses.get() + 1  # Include background class
         self._insertFunctionStep(self.createOutputStep)
 
     def createOutputStep(self):
         netWeights = DeepFinderNet()
         netWeights.setPath(self.netWeightsFile.get())
-        netWeights.setNbOfClasses(self.numClasses.get())
+        netWeights.setNbOfClasses(self.nClasses)
         self._defineOutputs(**{self._possibleOutputs.netWeights.name: netWeights})
 
     # --------------------------- INFO functions -----------------------------------
@@ -54,7 +55,7 @@ class ProtDeepFinderLoadTrainingModel(EMProtocol):
         if self.isFinished():
             summary.append("Loaded training model info:\n"
                            "Net weights file = *{}*\n"
-                           "Number of classes = *{}*\n".format(
-                            self.netWeightsFile.get(), self.numClasses.get()))
+                           "Number of classes = *{}* (background class included)\n".format(
+                            self.netWeightsFile.get(), self.numClasses.get() + 1))
 
         return summary

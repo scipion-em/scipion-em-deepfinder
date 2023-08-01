@@ -25,13 +25,12 @@
 # *
 # **************************************************************************
 from enum import Enum
-
 from pyworkflow import BETA
 from pyworkflow.object import String, Float
 from pyworkflow.protocol import params, PointerParam
 from pyworkflow.utils.properties import Message
 from tomo.constants import BOTTOM_LEFT_CORNER
-from tomo.objects import Coordinate3D, SetOfCoordinates3D, SetOfTomograms
+from tomo.objects import Coordinate3D, SetOfTomograms, SetOfCoordinates3D
 from tomo.protocols import ProtTomoPicking
 from deepfinder import Plugin
 import deepfinder.convert as cv
@@ -64,7 +63,6 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
                       pointerClass='SetOfTomoMasks',
                       label="Segmentation maps", important=True,
                       help='Please select the segmentation maps you would like to analyze.')
-
         form.addParam('cradius', params.IntParam,
                       default=5,
                       label='Clustering radius', important=True,
@@ -92,15 +90,17 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
         Plugin.runDeepFinder(self, 'cluster', deepfinder_args)
 
     def createOutputStep(self, segm, segmInd):
+        boxSize = 2 * self.cradius.get()
         # Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
         coord3DSet = getattr(self, self._possibleOutputs.coordinates.name, None)
         if not coord3DSet:
             setSegmentations = self.inputSegmentations.get()
             tomograms = getObjFromRelation(setSegmentations, self, SetOfTomograms)
-            coord3DSet = self._createSetOfCoordinates3DWithScore(setSegmentations)
+            coord3DSet = SetOfCoordinates3D.create(self.getPath(), template='coordinates%s.sqlite')
             coord3DSet.setName('Detected objects')
             coord3DSet.setPrecedents(tomograms)
             coord3DSet.setSamplingRate(setSegmentations.getSamplingRate())
+            coord3DSet.setBoxSize(boxSize)
 
         clusteringSummary = ''
         # Get objl filename:
@@ -138,6 +138,7 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
             coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
             coord.setTomoId(tomoId)
             coord.setVolId(segmInd + 1)
+            coord.setBoxSize(boxSize)
             coord._dfLabel = String(str(lbl))
             coord._dfScore = Float(score)
 

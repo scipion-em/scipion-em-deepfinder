@@ -227,7 +227,7 @@ class TestDeepFinderSegment(BaseTest):
         # Get model weights:
         protImportModel = self.newProtocol(deepfinder.protocols.ProtDeepFinderLoadTrainingModel,
                                            netWeightsFile=self.dataset.getPath()+'/net_weights_SHREC2019_4B4T.h5',
-                                           numClasses=2)
+                                           numClasses=1)
         self.launchProtocol(protImportModel)
         output = getattr(protImportModel, protImportModel._possibleOutputs.netWeights.name, None)
         self.assertIsNotNone(output, "There was a problem with import model output")
