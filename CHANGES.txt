@@ -1,3 +1,8 @@
-v3.0.1:
+v3.1.0:
     - Target generation can be now parallelized using threads.
     - Fixes in the tomogram/tomomask assignment in the segment and cluster protocols.
+    - Calling the DeepFinder viewer now offers an auxiliar window to previously select the tomogram to be displayed.
+    - The background class in now considered internally by Scipion when importing a model.
+    - Critical warning about the FOV value added to the target generation protocol.
+
+
