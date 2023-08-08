@@ -50,6 +50,7 @@ class ParticleAnnotatorDialog(ToolbarListDialog):
                                    allowsEmptySelection=False,
                                    itemDoubleClick=self.doubleClickOnTomogram,
                                    allowSelect=False,
+                                   cancelButton=True,
                                    **kwargs)
 
     def refresh_gui(self):
