@@ -25,7 +25,9 @@
 # **************************************************************************
 
 import threading
-from os.path import abspath
+from os.path import abspath, join
+
+from deepfinder.convert import objl_read
 from pyworkflow.gui.dialog import ToolbarListDialog
 from pyworkflow.utils.path import removeBaseExt
 from deepfinder import Plugin

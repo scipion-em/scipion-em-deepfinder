@@ -24,8 +24,9 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from os.path import join, isfile
+from os.path import join, isfile, abspath
 
+from deepfinder.convert import objl_read
 from pyworkflow.utils import removeBaseExt
 from tomo.viewers.views_tkinter_tree import TomogramsTreeProvider
 
@@ -36,14 +37,15 @@ class ParticleAnnotatorProvider(TomogramsTreeProvider):
         tomogramName = removeBaseExt(inTomo.getFileName())
         filePath = join(self._path, "objl_annot_" + tomogramName + ".xml")
 
-        if not isfile(filePath):
+        if isfile(filePath):
+            nCoords = len(objl_read(abspath(filePath)))
             return {'key': tomogramName, 'parent': None,
-                    'text': tomogramName, 'values': "PENDING",
-                    'tags': "pending"}
+                    'text': tomogramName, 'values': (nCoords, 'DONE'),
+                    'tags': "done"}
         else:
             return {'key': tomogramName, 'parent': None,
-                    'text': tomogramName, 'values': "DONE",
-                    'tags': "done"}
+                    'text': tomogramName, 'values': (0, 'PENDING'),
+                    'tags': "pending"}
 
     def getColumns(self):
-        return [('Tomograms', 300), ('status', 150)]
+        return [('Tomograms', 300), ("# coords", 100), ('status', 150)]
