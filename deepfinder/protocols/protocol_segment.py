@@ -24,6 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from enum import Enum
 from os.path import abspath
 
 from pyworkflow import BETA
@@ -37,13 +38,16 @@ from deepfinder import Plugin
 from deepfinder.protocols import ProtDeepFinderBase
 
 
+class DFSegmentOutputs(Enum):
+    segmentations = SetOfTomoMasks
+
+
 class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol segments tomograms, using a trained neural network."""
 
     _label = 'segment'
     _devStatus = BETA
-    _outputFiles = []
-    _outputFilesBinned = []
+    _possibleOutputs = DFSegmentOutputs
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -66,45 +70,47 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep('launchSegmentationStep')
-        self._insertFunctionStep('createOutputStep')
+        tomoList = [tomo.clone() for tomo in self.inputTomograms.get()]
+        for tomo in tomoList:
+            self._insertFunctionStep(self.launchSegmentationStep, tomo)
+            self._insertFunctionStep(self.createOutputStep, tomo)
 
     # --------------------------- STEPS functions -----------------------------
-    def launchSegmentationStep(self):
-        for tomo in self.inputTomograms.get().iterItems():
-            outputFileName = self._genOutputFileName(tomo, binned=False)
-            self._outputFiles.append(outputFileName)
+    def launchSegmentationStep(self, tomo):
+        outputFileName = self._genOutputFileName(tomo, binned=False)
 
-            # Launch annotation GUI passing the tomogram file name
-            deepfinder_args = '-t ' + tomo.getFileName()
-            deepfinder_args += ' -w ' + self.weights.get().getPath() # FIXME: Return object from pointer
-            deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
-            deepfinder_args += ' -p ' + str(self.psize)
-            deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
+        # Launch annotation GUI passing the tomogram file name
+        deepfinder_args = '-t ' + tomo.getFileName()
+        deepfinder_args += ' -w ' + self.weights.get().getPath()  # FIXME: Return object from pointer
+        deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
+        deepfinder_args += ' -p ' + str(self.psize)
+        deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
 
-            Plugin.runDeepFinder(self, 'segment', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
+        Plugin.runDeepFinder(self, 'segment', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
 
-    def createOutputStep(self):
-        tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
-        tomoMaskSet.copyInfo(self.inputTomograms.get())
-        tomoMaskSet.setDim(self.inputTomograms.get().getDimensions())
-        tomoMaskSet.setName('segmented tomogram set')
+    def createOutputStep(self, tomo):
+        tomoMaskSet = getattr(self, self._possibleOutputs.segmentations.name, None)
+        if not tomoMaskSet:
+            tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
+            tomoMaskSet.copyInfo(self.inputTomograms.get())
+            tomoMaskSet.setDim(self.inputTomograms.get().getDimensions())
+            tomoMaskSet.setName('segmented tomogram set')
 
-        for tomo, tomoMaskName in zip(self.inputTomograms.get(), self._outputFiles):
+        tomoMaskName = self._genOutputFileName(tomo, binned=False)
+        # Import generated target from extra folder and store into TomoMask object:
+        tomoMask = TomoMask()
+        tomoMask.cleanObjId()
+        tomoMask.copyInfo(tomo)
+        tomoMask.setFileName(self._getExtraPath(tomoMaskName))
 
-            # Import generated target from extra folder and store into TomoMask object:
-            tomoMask = TomoMask()
-            tomoMask.cleanObjId()
-            tomoMask.copyInfo(tomo)
-            tomoMask.setFileName(self._getExtraPath(tomoMaskName))
-
-            # Link to origin tomogram:
-            tomoMask.setVolName(tomo.getFileName())
-
-            tomoMaskSet.append(tomoMask)
+        # Link to origin tomogram:
+        tomoMask.setVolName(tomo.getFileName())
+        tomoMaskSet.append(tomoMask)
 
         # Link to output:
-        self._defineOutputs(outputTargetSet=tomoMaskSet)
+        self._defineOutputs(**{self._possibleOutputs.segmentations.name: tomoMaskSet})
+        self._defineSourceRelation(self.weights, tomoMaskSet)
+        self._defineSourceRelation(self.inputTomograms, tomoMaskSet)
 
     # --------------------------- INFO functions ----------------------
     def _summary(self):
@@ -112,23 +118,24 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         summary = []
 
         if self.isFinished():
-
             summary.append("Segmentation finished.")
         return summary
 
     def getMethods(self, output):
-        msg = 'User picked %d particles ' % self.outputTargetSet.getSize()
+        msg = 'User picked %d particles ' % output.getSize()
         return msg
 
     def _methods(self):
         methodsMsgs = []
+        tomoMaskSet = getattr(self, self._possibleOutputs.segmentations.name, None)
+
         if self.inputTomograms is None:
             return ['Input tomogram not available yet.']
 
         methodsMsgs.append("Input tomograms imported of dims %s." % (
             str(self.inputTomograms.get().getDim())))
 
-        if self.outputTargetSet.getSize() >= 1:
+        if tomoMaskSet.getSize() >= 1:
             for key, output in self.iterOutputAttributes():
                 msg = self.getMethods(output)
                 methodsMsgs.append("%s: %s" % (self.getObjectTag(output), msg))

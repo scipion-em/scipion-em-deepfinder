@@ -24,34 +24,45 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from enum import Enum
 from os.path import abspath
 
+from pwem.convert.headers import fixVolume
 from pyworkflow import BETA
-from pyworkflow.protocol import params, PointerParam
+from pyworkflow.object import Set
+from pyworkflow.protocol import params, PointerParam, STEPS_PARALLEL
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
 
 from pwem.protocols import EMProtocol
 from tomo.protocols import ProtTomoBase
-from tomo.objects import TomoMask, SetOfTomoMasks, SetOfTomograms
+from tomo.objects import TomoMask, SetOfTomoMasks
 
 from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
+import logging
+logger = logging.getLogger(__name__)
+
+
+class GenTargetsOutputs(Enum):
+    segmentedTargets = SetOfTomoMasks
 
 
 class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
     """ This protocol generates segmentation maps from annotations. These segmentation maps will be used as targets
      to train DeepFinder """
 
-    _label = 'generate sphere target'
+    _label = 'generate sphere targets'
     _devStatus = BETA
+    _possibleOutputs = GenTargetsOutputs
 
     def __init__(self, **args):
         EMProtocol.__init__(self, **args)
-        self.targetname_list = []
+        self.stepsExecutionMode = STEPS_PARALLEL
         self.tomoSet = None
         self.coord3DSet = None
+        self.objlTomoList = None
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -69,21 +80,36 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
 
         form.addParam('sphereRadii', params.StringParam,
                       default='5,6,...,3',
-                      label='Sphere radii', important=True,
-                      help='Sphere radius, in voxels,  per class. Should be separated by coma as follows: '
+                      label='Sphere radius [pix.]',
+                      important=True,
+                      help='Sphere radius, in voxels, per class. Should be separated by coma as follows: '
                            'Rclass1,Rclass2, ...')
+
+        form.addParallelSection(threads=4, mpi=1)
 
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         # Insert processing steps
-        self._initialize()
-        self._insertFunctionStep('launchTargetGenerationStep')
-        self._insertFunctionStep('createOutputStep')
+        tomoDictList = self._initialize()
+        counter = 0
+        launchIdList = []
+        for tomoDict in tomoDictList:
+            launchId = self._insertFunctionStep(self.launchTargetGenerationStep, tomoDict, prerequisites=[])
+            launchIdList.append(launchId)
+            counter += 1
+        self._insertFunctionStep(self.createOutputStep, tomoDictList, prerequisites=launchIdList)
 
-    def launchTargetGenerationStep(self):
+    def _initialize(self):
+        self.coord3DSet = self.inputCoordinates.get()
+        self.tomoSet = self.coord3DSet.getPrecedents()
+        return self._getObjlFromInputCoordinates(self.coord3DSet)
 
-        self.tomoSet = self.inputCoordinates.get().getPrecedents()
+    def launchTargetGenerationStep(self, tomoDict):
+        tomo = tomoDict[self.TOMO]
+        objl_tomo = tomoDict[self.OBJL]
+        fname_params = tomoDict[self.PARAMS_XML]
 
+        logger.info(f'Target generation step of ---> {tomo.getTsId()}')
         # Prepare parameter file for DeepFinder. First, set parameters that are common to all targets to be generated:
         param = cv.ParamsGenTarget()
         # Set strategy:
@@ -92,73 +118,60 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         radius_list_string = self.sphereRadii.get()
         radius_list = [int(r) for r in radius_list_string.split(',')]
         param.radius_list = radius_list
-        # Set optional volume for target initialization:
-        #if self.initialVolume.get():  # TODO should be 1 initial vol per target
-        #    param.path_initial_vol = self.initialVolume.get().getFileName()
 
-        objl_tomoList = self._getObjlFromInputCoordinates(self.inputCoordinates.get())
+        # Get objl for tomogram and save objl to extra folder:
+        fname_objl = abspath(self._getExtraPath(f'objl_{tomo.getTsId()}.xml'))
+        cv.objl_write(objl_tomo, fname_objl)
 
-        # --------------------------------------------------------------------------------------------------------------
-        # Now, set parameters specific to each tomogram:
-        for tidx, tomo in enumerate(self.tomoSet):
-            # Get objl for tomogram and save objl to extra folder:
-            objl_tomo = cv.objl_get_tomo(objl_tomoList, tomo.getObjId())
-            fname_objl = abspath(self._getExtraPath('objl.xml'))
-            cv.objl_write(objl_tomo, fname_objl)
+        param.path_objl = fname_objl
 
-            param.path_objl = fname_objl
+        # Set tomogram size:
+        dimX, dimY, dimZ = tomo.getDimensions()
+        param.tomo_size = (dimZ, dimY, dimX)
 
-            # Set tomogram size:
-            dimX, dimY, dimZ = tomo.getDimensions()
-            param.tomo_size = (dimZ, dimY, dimX)
+        # Set path to where write the generated target:
+        param.path_target = abspath(self.getTargetName(tomo))
 
-            # Set path to where write the generated target:
-            fname_target = self._getExtraPath('target_' + removeBaseExt(tomo.getFileName()) + '.mrc')
-            self.targetname_list.append(fname_target)
-            param.path_target = abspath(fname_target)
+        # Save the parameter file:
+        fname_params = abspath(self._getExtraPath(fname_params))
+        param.write(fname_params)
 
-            # Save the parameter file:
-            fname_params = abspath(self._getExtraPath('params_target_generation_%i.xml' % tidx))
-            param.write(fname_params)
+        # Launch DeepFinder target generation:
+        deepfinder_args = '-p ' + fname_params
+        Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
 
-            # Launch DeepFinder target generation:
-            deepfinder_args = '-p ' + fname_params
-            Plugin.runDeepFinder(self, 'generate_target', deepfinder_args)
-
-    def createOutputStep(self):
+    def createOutputStep(self, tomoDictList):
+        logger.info('Generating the outputs...')
         targetSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
         targetSet.copyInfo(self.tomoSet)
-        targetSet.setName('sphere target set')
+        setattr(self, self._possibleOutputs.segmentedTargets.name, targetSet)
 
-        for tomo, targetname in zip(self.tomoSet, self.targetname_list):
-
-            # Import generated target from tmp folder and and store into segmentation object:
+        # Import generated target from tmp folder and store into segmentation object:
+        for tomoDict in tomoDictList:
+            tomo = tomoDict[self.TOMO]
+            tomoMaskName = self.getTargetName(tomo)
+            fixVolume(tomoMaskName)
             target = TomoMask()
             target.cleanObjId()
             target.copyInfo(tomo)
-            target.setFileName(targetname)
-
+            target.setFileName(tomoMaskName)
             # Link to origin tomogram:
             target.setVolName(tomo.getFileName())
-
             targetSet.append(target)
 
-        # Link to output:
-        # targetSet.write() # FIXME: EMProtocol is the one that has the method to save Sets
-        self._defineOutputs(outputTargetSet=targetSet)
+        # Define outputs and relations
+        self._defineOutputs(**{self._possibleOutputs.segmentedTargets.name: targetSet})
         self._defineSourceRelation(self.inputCoordinates, targetSet)
 
-    def _initialize(self):
-        self.coord3DSet = self.inputCoordinates.get()
-        self.tomoSet = self.coord3DSet.getPrecedents()
+    def getTargetName(self, tomo):
+        return self._getExtraPath('target_' + removeBaseExt(tomo.getFileName()) + '.mrc')
 
-    # --------------------------- INFO functions ----------------------------------- # TODO
+    # --------------------------- INFO functions -----------------------------------
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []
 
         if self.isFinished():
-
             summary.append("Target generation finished.")
         return summary
 
@@ -173,4 +186,15 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
                                % (self.previousCount, self.count))
         return methods
 
-
+    def _validate(self):
+        errorMsg = []
+        radius_list_string = self.sphereRadii.get()
+        radius_list = [int(r) >= 48 for r in radius_list_string.split(',')]
+        if any(radius_list):
+            errorMsg.append('None of the radius values introduced should be *smaller than 48 voxels* ('
+                            '[https://doi.org/10.1038/s41592-021-01275-4] receptive field '
+                            'of the network --> the network would be more likely to detect objects that are smaller '
+                            'than or equal to the receptive field size.)\n\n'
+                            'Consider downsampling your tomograms so the entities desired to be detected are smaller '
+                            'or equal than 48 x 48 x 48 voxels.')
+        return errorMsg

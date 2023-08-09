@@ -25,10 +25,12 @@
 # *
 # **************************************************************************
 import os
+from enum import Enum
 from os.path import basename
 
 from pyworkflow import BETA
 from pyworkflow.object import String
+from pyworkflow.protocol import LEVEL_ADVANCED
 from tomo.constants import BOTTOM_LEFT_CORNER
 
 from tomo.objects import SetOfCoordinates3D, Coordinate3D
@@ -39,12 +41,16 @@ import pyworkflow.protocol.params as params
 import deepfinder.convert as cv
 
 
+class DFImportCoordsOutputs(Enum):
+    coordinates = SetOfCoordinates3D
+
+
 class ImportCoordinates3D(ProtTomoImportFiles):
     """Protocol to import a DeepFinder object list as a set of 3D coordinates in Scipion"""
 
-    _outputClassName = 'SetOfCoordinates3D'
-    _label = 'import coordinates'
+    _label = 'import DeepFInder coordinates'
     _devStatus = BETA
+    _possibleOutputs = DFImportCoordsOutputs
 
     def _defineParams(self, form):
         ProtTomoImportFiles._defineImportParams(self, form)
@@ -55,17 +61,23 @@ class ImportCoordinates3D(ProtTomoImportFiles):
                       help='Select the tomograms/tomogram for which you '
                            'want to import coordinates. The file names of the tomogram and '
                            'coordinate files must be the same.')
+        form.addParam('boxSize', params.IntParam,
+                      label="Box size",
+                      expertLevel=LEVEL_ADVANCED,
+                      default=50,
+                      help='Default box size for the output.')
 
     def _insertAllSteps(self):
-        self._insertFunctionStep('importCoordinatesStep')
+        self._insertFunctionStep(self.importCoordinatesStep)
 
     # --------------------------- STEPS functions -----------------------------
     def importCoordinatesStep(self):
         importTomograms = self.importTomograms.get()
+        boxSize = self.boxSize.get()
         suffix = self._getOutputSuffix(SetOfCoordinates3D)
         coord3DSet = self._createSetOfCoordinates3D(importTomograms, suffix)
-
         coord3DSet.setPrecedents(importTomograms)
+        coord3DSet.setBoxSize(boxSize)
         coordCounter = 1
         for tomoInd, tomo in enumerate(importTomograms.iterItems()):
             tomoName = basename(os.path.splitext(tomo.getFileName())[0])
@@ -86,6 +98,7 @@ class ImportCoordinates3D(ProtTomoImportFiles):
                         coord.setObjId(coordCounter)
                         coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                         coord.setVolId(tomoInd + 1)
+                        coord.setBoxSize(boxSize)
                         coord._dfLabel = String(str(lbl))
 
                         coord3DSet.append(coord)
@@ -93,5 +106,5 @@ class ImportCoordinates3D(ProtTomoImportFiles):
 
         coord3DSet.setSamplingRate(importTomograms.getSamplingRate())
 
-        self._defineOutputs(outputCoordinates=coord3DSet)
+        self._defineOutputs(**{self._possibleOutputs.coordinates.name: coord3DSet})
         self._defineSourceRelation(self.importTomograms, coord3DSet)

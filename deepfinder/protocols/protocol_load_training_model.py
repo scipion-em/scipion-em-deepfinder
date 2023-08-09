@@ -1,9 +1,14 @@
+from enum import Enum
+
 from pwem.protocols import EMProtocol, FileParam
 from pyworkflow import BETA
 from pyworkflow.protocol import IntParam, GT
 from pyworkflow.utils import Message
-
 from deepfinder.objects import DeepFinderNet
+
+
+class DFImportModelOutputs(Enum):
+    netWeights = DeepFinderNet
 
 
 class ProtDeepFinderLoadTrainingModel(EMProtocol):
@@ -11,6 +16,7 @@ class ProtDeepFinderLoadTrainingModel(EMProtocol):
 
     _label = 'Load Training Model'
     _devStatus = BETA
+    _possibleOutputs = DFImportModelOutputs
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -30,16 +36,17 @@ class ProtDeepFinderLoadTrainingModel(EMProtocol):
                       important=True,
                       allowsNull=False,
                       validators=[GT(0)],
-                      help='Number of classes corresponding to this model (background included).')
+                      help='Number of classes corresponding to this model.')
 
     def _insertAllSteps(self):
-        self._insertFunctionStep('createOutputStep')
+        self.nClasses = self.numClasses.get() + 1  # Include background class
+        self._insertFunctionStep(self.createOutputStep)
 
     def createOutputStep(self):
         netWeights = DeepFinderNet()
         netWeights.setPath(self.netWeightsFile.get())
-        netWeights.setNbOfClasses(self.numClasses.get())
-        self._defineOutputs(netWeights=netWeights)
+        netWeights.setNbOfClasses(self.nClasses)
+        self._defineOutputs(**{self._possibleOutputs.netWeights.name: netWeights})
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):
@@ -48,7 +55,7 @@ class ProtDeepFinderLoadTrainingModel(EMProtocol):
         if self.isFinished():
             summary.append("Loaded training model info:\n"
                            "Net weights file = *{}*\n"
-                           "Number of classes = *{}*\n".format(
-                            self.netWeightsFile.get(), self.numClasses.get()))
+                           "Number of classes = *{}* (background class included)\n".format(
+                            self.netWeightsFile.get(), self.numClasses.get() + 1))
 
         return summary

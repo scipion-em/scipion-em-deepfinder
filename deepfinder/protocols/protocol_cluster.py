@@ -24,17 +24,24 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from enum import Enum
 from pyworkflow import BETA
 from pyworkflow.object import String, Float
 from pyworkflow.protocol import params, PointerParam
 from pyworkflow.utils.properties import Message
 from tomo.constants import BOTTOM_LEFT_CORNER
-from tomo.objects import Coordinate3D
+from tomo.objects import Coordinate3D, SetOfTomograms, SetOfCoordinates3D
 from tomo.protocols import ProtTomoPicking
 from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
 import os
+
+from tomo.utils import getObjFromRelation
+
+
+class DFClusterOutputs(Enum):
+    coordinates = SetOfCoordinates3D
 
 
 class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
@@ -42,6 +49,7 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
     _label = 'cluster'
     _devStatus = BETA
+    _possibleOutputs = DFClusterOutputs
 
     def __init__(self, **args):
         ProtTomoPicking.__init__(self, **args)
@@ -55,7 +63,6 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
                       pointerClass='SetOfTomoMasks',
                       label="Segmentation maps", important=True,
                       help='Please select the segmentation maps you would like to analyze.')
-
         form.addParam('cradius', params.IntParam,
                       default=5,
                       label='Clustering radius', important=True,
@@ -63,86 +70,85 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-
-        # Launch Boxing GUI
-        self._insertFunctionStep('launchClusteringStep')
-        self._insertFunctionStep('createOutputStep')
+        tomoMasks = [tomoMask.clone() for tomoMask in self.inputSegmentations.get()]
+        for ind, tomoMask in enumerate(tomoMasks):
+            self._insertFunctionStep(self.launchClusteringStep, tomoMask)
+            self._insertFunctionStep(self.createOutputStep, tomoMask, ind)
 
     # --------------------------- STEPS functions -----------------------------
-    def launchClusteringStep(self):
-        for segm in self.inputSegmentations.get().iterItems():
-            fname_segm = os.path.splitext(segm.getFileName())
-            fname_segm = os.path.basename(fname_segm[0])
-            fname_objl = 'objl_' + fname_segm + '.xml'
-            fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), fname_objl))
+    def launchClusteringStep(self, segm):
+        fname_segm = os.path.splitext(segm.getFileName())
+        fname_segm = os.path.basename(fname_segm[0])
+        fname_objl = 'objl_' + fname_segm + '.xml'
+        fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), fname_objl))
 
-            # Launch DeepFinder executable:
-            deepfinder_args = '-l ' + segm.getFileName()
-            deepfinder_args += ' -r ' + str(self.cradius)
-            deepfinder_args += ' -o ' + fname_objl
+        # Launch DeepFinder executable:
+        deepfinder_args = '-l ' + segm.getFileName()
+        deepfinder_args += ' -r ' + str(self.cradius)
+        deepfinder_args += ' -o ' + fname_objl
 
-            Plugin.runDeepFinder(self, 'cluster', deepfinder_args)
+        Plugin.runDeepFinder(self, 'cluster', deepfinder_args)
 
-    def createOutputStep(self):
+    def createOutputStep(self, segm, segmInd):
+        boxSize = 2 * self.cradius.get()
         # Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
-        setSegmentations = self.inputSegmentations.get()
+        coord3DSet = getattr(self, self._possibleOutputs.coordinates.name, None)
+        if not coord3DSet:
+            setSegmentations = self.inputSegmentations.get()
+            tomograms = getObjFromRelation(setSegmentations, self, SetOfTomograms)
+            coord3DSet = SetOfCoordinates3D.create(self.getPath(), template='coordinates%s.sqlite')
+            coord3DSet.setName('Detected objects')
+            coord3DSet.setPrecedents(tomograms)
+            coord3DSet.setSamplingRate(setSegmentations.getSamplingRate())
+            coord3DSet.setBoxSize(boxSize)
 
-
-        coord3DSet = self._createSetOfCoordinates3DWithScore(setSegmentations)
-        coord3DSet.setName('Detected objects')
-        coord3DSet.setPrecedents(setSegmentations)
-        coord3DSet.setSamplingRate(setSegmentations.getSamplingRate())
-
-        coordCounter = 0
         clusteringSummary = ''
-        for segmInd, segm in enumerate(setSegmentations.iterItems()):
-            # Get objl filename:
-            fname_segm = os.path.splitext(segm.getFileName())
-            fname_segm = os.path.basename(fname_segm[0])
-            fname_objl = 'objl_' + fname_segm + '.xml'
+        # Get objl filename:
+        fname_segm = os.path.splitext(segm.getFileName())
+        fname_segm = os.path.basename(fname_segm[0])
+        fname_objl = 'objl_' + fname_segm + '.xml'
 
-            # Read objl:
-            objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
+        # Read objl:
+        objl_tomo = cv.objl_read(os.path.abspath(os.path.join(self._getExtraPath(), fname_objl)))
 
-            # Generate string for protocol summary:
-            msg = 'Segmentation '+str(segmInd+1)+': a total of ' + str(len(objl_tomo)) + ' objects has been found.'
+        # Generate string for protocol summary:
+        msg = 'Segmentation ' + str(segmInd + 1) + ': a total of ' + str(
+            len(objl_tomo)) + ' objects has been found.'
+        clusteringSummary += msg
+        lbl_list = cv.objl_get_labels(objl_tomo)
+        for lbl in lbl_list:
+            objl_class = cv.objl_get_class(objl_tomo, lbl)
+            msg = '\nClass ' + str(lbl) + ': ' + str(len(objl_class)) + ' objects'
             clusteringSummary += msg
-            lbl_list = cv.objl_get_labels(objl_tomo)
-            for lbl in lbl_list:
-                objl_class = cv.objl_get_class(objl_tomo, lbl)
-                msg = '\nClass ' + str(lbl) + ': ' + str(len(objl_class)) + ' objects'
-                clusteringSummary += msg
-            clusteringSummary += '\n'
+        clusteringSummary += '\n'
 
-            # Get tomo corresponding to current tomomask:
-            tomo = segm.getTomogram()
+        # Get tomo corresponding to current tomomask:
+        tomo = segm.getTomogram()
+        tomoId = segm.getTsId()
 
-            for idx in range(len(objl_tomo)):
-                x = objl_tomo[idx]['x']
-                y = objl_tomo[idx]['y']
-                z = objl_tomo[idx]['z']
-                lbl = objl_tomo[idx]['label']
-                score = objl_tomo[idx]['cluster_size']
+        for idx in range(len(objl_tomo)):
+            x = objl_tomo[idx]['x']
+            y = objl_tomo[idx]['y']
+            z = objl_tomo[idx]['z']
+            lbl = objl_tomo[idx]['label']
+            score = objl_tomo[idx]['cluster_size']
 
-                coord = Coordinate3D()
-                coord.setVolume(tomo)
-                coord.setObjId(coordCounter)
-                coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
-                coord.setVolId(segmInd + 1)
-                coord._dfLabel = String(str(lbl))
-                coord._dfScore = Float(score)
+            coord = Coordinate3D()
+            coord.setVolume(tomo)
+            coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
+            coord.setTomoId(tomoId)
+            coord.setVolId(segmInd + 1)
+            coord.setBoxSize(boxSize)
+            coord._dfLabel = String(str(lbl))
+            coord._dfScore = Float(score)
 
-                coord3DSet.append(coord)
+            coord3DSet.append(coord)
 
-                coordCounter += 1
-
-        self._defineOutputs(outputCoordinates=coord3DSet)
-        self._defineSourceRelation(setSegmentations, coord3DSet)
+        self._defineOutputs(**{self._possibleOutputs.coordinates.name: coord3DSet})
+        self._defineSourceRelation(self.inputSegmentations, coord3DSet)
 
         self.clusteringSummary.set(clusteringSummary)
         self._store(self.clusteringSummary)
-
-
 
     # --------------------------- DEFINE info functions ---------------------- # TODO
     def _summary(self):
