@@ -27,7 +27,8 @@
 from enum import Enum
 from pyworkflow import BETA
 from pyworkflow.object import String, Float
-from pyworkflow.protocol import params, PointerParam
+from pyworkflow.protocol import params, PointerParam, STEPS_PARALLEL
+from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
 from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.objects import Coordinate3D, SetOfTomograms, SetOfCoordinates3D
@@ -36,8 +37,9 @@ from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
 import os
-
 from tomo.utils import getObjFromRelation
+import logging
+logger = logging.getLogger(__name__)
 
 
 class DFClusterOutputs(Enum):
@@ -52,7 +54,8 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     _possibleOutputs = DFClusterOutputs
 
     def __init__(self, **args):
-        ProtTomoPicking.__init__(self, **args)
+        super().__init__(**args)
+        self.stepsExecutionMode = STEPS_PARALLEL
         self.clusteringSummary = String()
 
     # --------------------------- DEFINE param functions ----------------------
@@ -67,19 +70,19 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
                       default=5,
                       label='Clustering radius', important=True,
                       help='Should correspond to average radius of target objects (in voxels)')
+        form.addParallelSection(threads=4, mpi=1)
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         tomoMasks = [tomoMask.clone() for tomoMask in self.inputSegmentations.get()]
         for ind, tomoMask in enumerate(tomoMasks):
-            self._insertFunctionStep(self.launchClusteringStep, tomoMask)
-            self._insertFunctionStep(self.createOutputStep, tomoMask, ind)
+            pid = self._insertFunctionStep(self.launchClusteringStep, tomoMask, prerequisites=[])
+            self._insertFunctionStep(self.createOutputStep, tomoMask, ind, prerequisites=pid)
 
     # --------------------------- STEPS functions -----------------------------
     def launchClusteringStep(self, segm):
-        fname_segm = os.path.splitext(segm.getFileName())
-        fname_segm = os.path.basename(fname_segm[0])
-        fname_objl = 'objl_' + fname_segm + '.xml'
+        logger.info(f'Clustering step of ---> {segm.getTsId()}')
+        fname_objl = 'objl_' + removeBaseExt(segm.getFileName()) + '.xml'
         fname_objl = os.path.abspath(os.path.join(self._getExtraPath(), fname_objl))
 
         # Launch DeepFinder executable:
@@ -90,6 +93,7 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
         Plugin.runDeepFinder(self, 'cluster', deepfinder_args)
 
     def createOutputStep(self, segm, segmInd):
+        logger.info(f'Generating the output of ---> {segm.getTsId()}')
         boxSize = 2 * self.cradius.get()
         # Convert DeepFinder annotation output to Scipion SetOfCoordinates3D
         coord3DSet = getattr(self, self._possibleOutputs.coordinates.name, None)
@@ -138,7 +142,6 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
             coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
             coord.setTomoId(tomoId)
             coord.setVolId(segmInd + 1)
-            coord.setBoxSize(boxSize)
             coord._dfLabel = String(str(lbl))
             coord._dfScore = Float(score)
 
