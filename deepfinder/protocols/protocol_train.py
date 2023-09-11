@@ -257,26 +257,6 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
 
         return path_tomos, path_targets, objl_train, objl_valid
 
-    # @staticmethod
-    # def _joinSetsOfTomoMasks(tomoMaskSet1, tomoMaskSet2, path):
-    #     """ Joins two tomoMaskSets.
-    #     Args:
-    #         tomoMaskSet1 (SetOfTomoMasks)
-    #         tomoMaskSet1 (SetOfTomoMasks)
-    #     Returns:
-    #         SetOfTomoMasks
-    #     """
-    #     # tomoMaskSet = SetOfTomoMasks()
-    #     tomoMaskSet = SetOfTomoMasks.create(path, template='setOfTomoMasks%s.sqlite')
-    #     tomoMaskSet.copyInfo(tomoMaskSet1)
-    #     tomoMaskSet.setName('target set')
-    #     for tomoMask in tomoMaskSet1:
-    #         tomoMaskSet.append(tomoMask)
-    #     for tomoMask in tomoMaskSet2:
-    #         tomoMaskSet.append(tomoMask)
-    #
-    #     return tomoMaskSet
-
     @staticmethod
     def _setsOfTomoMasks2List(valTomoMasksSet, trainTomoMasksSet):
         """ Joins two tomoMaskSets.
@@ -307,8 +287,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
 
         return path_tomos, path_targets
 
-    # --------------------------- INFO functions ----------------------------------- # TODO
-
+    # --------------------------- INFO functions -----------------------------------
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []
