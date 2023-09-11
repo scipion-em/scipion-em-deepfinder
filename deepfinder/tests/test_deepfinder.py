@@ -34,16 +34,16 @@ from tomo.protocols.protocol_import_tomograms import OUTPUT_NAME
 
 from . import DataSet
 
+
 class TestDeepFinderImportCoordinates(BaseTest):
     """This class check if the protocol to import DeepFinder object lists works properly."""
+
     # modelled after tomo.test.TestTomoImportSetOfCoordinates3D
 
     @classmethod
     def setUpClass(cls):
         setupTestProject(cls)
         cls.dataset = DataSet.getDataSet('deepfinder')
-        #cls.objl = cls.dataset.getFile('coordset0')
-        #cls.tomogram = cls.dataset.getFile('tomo0')
 
     def _runDeepFinderImportCoordinates(self):
         # Get tomos:
@@ -84,8 +84,8 @@ class TestDeepFinderGenSphereTarget(BaseTest):
     def setUpClass(cls):
         setupTestProject(cls)
         cls.dataset = DataSet.getDataSet('deepfinder')
-        #cls.objl = cls.dataset.getFile('coordset0')
-        #cls.tomogram = cls.dataset.getFile('tomo0')
+        # cls.objl = cls.dataset.getFile('coordset0')
+        # cls.tomogram = cls.dataset.getFile('tomo0')
 
     def _runDeepFinderGenSphereTarget(self):
         # Get tomos:
@@ -129,7 +129,6 @@ class TestDeepFinderGenSphereTarget(BaseTest):
         return output
 
 
-
 class TestDeepFinderTrain(BaseTest):
     """This class check if the protocol to train the DeepFinder CNN works properly."""
 
@@ -137,8 +136,8 @@ class TestDeepFinderTrain(BaseTest):
     def setUpClass(cls):
         setupTestProject(cls)
         cls.dataset = DataSet.getDataSet('deepfinder')
-        #cls.objl = cls.dataset.getFile('coordset0')
-        #cls.tomogram = cls.dataset.getFile('tomo0')
+        # cls.objl = cls.dataset.getFile('coordset0')
+        # cls.tomogram = cls.dataset.getFile('tomo0')
 
     def _runDeepFinderTrain(self):
         # - This part could be adapted when the "tomomask import" protocol is ready - - - - - - - - - - - - - - - - - -
@@ -149,17 +148,17 @@ class TestDeepFinderTrain(BaseTest):
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)
-        output = getattr(protImportTomogram, OUTPUT_NAME, None)
-        self.assertIsNotNone(output, "There was a problem with tomogram output")
+        outputTomograms = getattr(protImportTomogram, OUTPUT_NAME, None)
+        self.assertIsNotNone(outputTomograms, "There was a problem with tomogram output")
 
         # Get coordinates:
         protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
-                                                   importTomograms=output,
+                                                   importTomograms=outputTomograms,
                                                    filesPattern='*.xml')
         self.launchProtocol(protImportCoordinates3d)
         outputCoords = getattr(protImportCoordinates3d, protImportCoordinates3d._possibleOutputs.coordinates.name, None)
-        self.assertIsNotNone(output, "There was a problem with coordinate output")
+        self.assertIsNotNone(outputCoords, "There was a problem with coordinate output")
 
         # Get tomo masks (targets):
         protGenTargets = self.newProtocol(deepfinder.protocols.DeepFinderGenerateTrainingTargetsSpheres,
@@ -167,12 +166,12 @@ class TestDeepFinderTrain(BaseTest):
                                           sphereRadii=10)
 
         self.launchProtocol(protGenTargets)
-        output = getattr(protGenTargets, protGenTargets._possibleOutputs.segmentedTargets.name, None)
-        self.assertIsNotNone(output, "There was a problem with target generation output")
+        outputSegs = getattr(protGenTargets, protGenTargets._possibleOutputs.segmentedTargets.name, None)
+        self.assertIsNotNone(outputSegs, "There was a problem with target generation output")
 
         # Split tomo mask set into train and valid:
         protSplitSets = self.newProtocol(pwem.protocols.ProtSplitSet,
-                                         inputSet=output,
+                                         inputSet=outputSegs,
                                          numberOfSets=2)
         self.launchProtocol(protSplitSets)
         tomoMasksTrain = getattr(protSplitSets, 'outputTomoMasks01')
@@ -182,7 +181,12 @@ class TestDeepFinderTrain(BaseTest):
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Define and launch test protocol:
-        # Param values are chose so that computation is inexpensive. The output net weights will not be useful.
+        trainProt1 = self._runTrainingWithInValSet(tomoMasksTrain, tomoMasksValid, outputCoords)
+        trainProt2 = self._runTrainingWithoutInValSet(outputSegs, outputCoords)
+        return [trainProt1, trainProt2]
+
+    def _runTrainingWithInValSet(self, tomoMasksTrain, tomoMasksValid, outputCoords):
+        # Param values are chosen so that computation is inexpensive. The output net weights will not be useful.
         protTrain = self.newProtocol(deepfinder.protocols.DeepFinderTrain,
                                      tomoMasksTrain=tomoMasksTrain,
                                      tomoMasksValid=tomoMasksValid,
@@ -194,16 +198,27 @@ class TestDeepFinderTrain(BaseTest):
                                      stepsPerV=1)
 
         self.launchProtocol(protTrain)
+        return protTrain
 
+    def _runTrainingWithoutInValSet(self, outputSegs, outputCoords):
+        # Param values are chosen so that computation is inexpensive. The output net weights will not be useful.
+        protTrain = self.newProtocol(deepfinder.protocols.DeepFinderTrain,
+                                     tomoMasksTrain=outputSegs,
+                                     coord=outputCoords,
+                                     psize=0,
+                                     bsize=1,
+                                     epochs=1,
+                                     stepsPerE=1,
+                                     stepsPerV=1)
+
+        self.launchProtocol(protTrain)
         return protTrain
 
     def test_train(self):
-        protTrain = self._runDeepFinderTrain()
-        output = getattr(protTrain, protTrain._possibleOutputs.netWeights.name, None)
-
-        self.assertTrue(output, "There was a problem with training output (net model weights)")
-
-        return output
+        protTrainList = self._runDeepFinderTrain()
+        for protTrain in protTrainList:
+            output = getattr(protTrain, protTrain._possibleOutputs.netWeights.name, None)
+            self.assertTrue(output, "There was a problem with training output (net model weights)")
 
 
 class TestDeepFinderSegment(BaseTest):
@@ -217,7 +232,7 @@ class TestDeepFinderSegment(BaseTest):
     def _runDeepFinderSegment(self):
         # Get tomo:
         protImportTomogram = self.newProtocol(tomo.protocols.ProtImportTomograms,
-                                              filesPath=self.dataset.getPath()+'/cropped_tomo0.mrc',
+                                              filesPath=self.dataset.getPath() + '/cropped_tomo0.mrc',
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)
@@ -226,7 +241,7 @@ class TestDeepFinderSegment(BaseTest):
 
         # Get model weights:
         protImportModel = self.newProtocol(deepfinder.protocols.ProtDeepFinderLoadTrainingModel,
-                                           netWeightsFile=self.dataset.getPath()+'/net_weights_SHREC2019_4B4T.h5',
+                                           netWeightsFile=self.dataset.getPath() + '/net_weights_SHREC2019_4B4T.h5',
                                            numClasses=1)
         self.launchProtocol(protImportModel)
         output = getattr(protImportModel, protImportModel._possibleOutputs.netWeights.name, None)
@@ -262,7 +277,7 @@ class TestDeepFinderCluster(BaseTest):
         # Get TomoMask (with target generation protocol):
         # Get tomos:
         protImportTomogram = self.newProtocol(tomo.protocols.ProtImportTomograms,
-                                              filesPath=self.dataset.getPath()+'/tomo0.mrc',
+                                              filesPath=self.dataset.getPath() + '/tomo0.mrc',
                                               samplingRate=10)
 
         self.launchProtocol(protImportTomogram)

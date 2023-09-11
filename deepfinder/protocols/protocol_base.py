@@ -102,5 +102,31 @@ class ProtDeepFinderBase(ProtTomoBase):
 
         return objl
 
+    @staticmethod
+    def _getObjlFromInputCoordinatesV2(tomoMasksList, coord3DSet, nValTomoMasks):
+        """Get all Coord objects related to the given Tomogram objects.
+        The output is an objl as needed by DeepFinder.
+        The tomo_idx in the objl respects the order in tomoSet, which is important for the Train protocol
+        Args:
+            tomoMasksList (list) list of TomoMasks ordered [validation masks, training masks]
+            coord3DSet (SetOfCoordinates3D)
+            nValTomoMasks (int): number of validation tomo masks
+        Returns:
+            list of dict: deep finder object list (contains particle infos)
+        """
+        objl_train = []
+        objl_valid = []
+        for tidx, tomoMask in enumerate(tomoMasksList):
+            tomoId = tomoMask.getObjId()
+            listToAdd = objl_valid if tidx <= nValTomoMasks - 1 else objl_train
+            for coord in coord3DSet.iterCoordinates(volume=tomoId):
+                x = coord.getX(BOTTOM_LEFT_CORNER)
+                y = coord.getY(BOTTOM_LEFT_CORNER)
+                z = coord.getZ(BOTTOM_LEFT_CORNER)
+                lbl = getattr(coord, DF_CLASS_LABEL, Integer(1)).get()  # If not coming from DF, all the coordinates
+                # will be considered to correspond to particles of the same class
+                cv.objl_add(listToAdd, label=lbl, coord=[z, y, x], tomo_idx=tidx)
+        return objl_train, objl_valid
+
 
 
