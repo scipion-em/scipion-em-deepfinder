@@ -240,21 +240,6 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         # Get deepfinder objl from coord3DSet:
         objl_train, objl_valid = self._getObjlFromInputCoordinatesV2(tomoMaskList, coord3DSet, len(tomoMaskSetValid))
 
-        # # Separate objl into objl_valid and objl_train:
-        # Nvalid = tomoMaskSetValid.__len__()
-        # Ntrain = tomoMaskSetTrain.__len__()
-        #
-        # tidx_list_valid = list(range(Nvalid))
-        # tidx_list_train = list(range(Nvalid, Nvalid + Ntrain))
-        #
-        # objl_valid = []
-        # for tidx in tidx_list_valid:
-        #     objl_valid = objl_valid + cv.objl_get_tomo(objl_all, tidx)
-        #
-        # objl_train = []
-        # for tidx in tidx_list_train:
-        #     objl_train = objl_train + cv.objl_get_tomo(objl_all, tidx)
-
         return path_tomos, path_targets, objl_train, objl_valid
 
     @staticmethod
