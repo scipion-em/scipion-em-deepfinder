@@ -38,4 +38,18 @@ DF_FOLDER = 'deepfinder'
 DEFAULT_ENV_NAME = getDFEnvName(DF_VERSION)
 DEFAULT_ACTIVATION_CMD = 'conda activate ' + DEFAULT_ENV_NAME
 DF_ENV_ACTIVATION = 'DF_ENV_ACTIVATION'
-DF_CLASS_LABEL = '_dfLabel'
+# DF_CLASS_LABEL = '_dfLabel'
+
+# DeepFinder field for its XML coords files:
+# Mandatory attributes
+DF_LABEL = 'class_label'
+DF_COORD_X = 'x'
+DF_COORD_Y = 'y'
+DF_COORD_Z = 'z'
+# Optional attributes
+DF_TOMO_IDX = 'tomo_idx'
+DF_OBJ_ID = 'obj_id'
+DF_PSI = 'psi'
+DF_PHI = 'phi'
+DF_THETA = 'the'
+DF_SCORE = 'cluster_size'

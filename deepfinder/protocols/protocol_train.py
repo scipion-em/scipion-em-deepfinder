@@ -26,21 +26,15 @@
 # **************************************************************************
 from enum import Enum
 from os.path import abspath
-
 import numpy as np
 
+from deepfinder import Plugin
 from pwem.protocols import EMProtocol
-from pyworkflow import BETA
-from pyworkflow.object import Integer
 from pyworkflow.protocol import params, PointerParam, GPU_LIST, LEVEL_ADVANCED, FloatParam, GT, LT
 from pyworkflow.utils.properties import Message
-
-from deepfinder import Plugin, DF_CLASS_LABEL
 import deepfinder.convert as cv
 from deepfinder.objects import DeepFinderNet
-
 from deepfinder.protocols import ProtDeepFinderBase
-from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.protocols import ProtTomoBase
 from tomo.objects import SetOfTomoMasks
 
@@ -55,7 +49,6 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
     """ This protocol launches the training procedure """
 
     _label = 'train'
-    _devStatus = BETA
     _possibleOutputs = DFTrainOutputs
 
     def __init__(self, **args):
@@ -97,6 +90,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         form.addParam('coord', params.PointerParam,
                       label="Coordinates",
                       pointerClass='SetOfCoordinates3D',
+                      important=True,
                       help='Select coordinate set.')
 
         form.addSection(label='Training Parameters')
@@ -105,44 +99,37 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                       default=0,  # 40: 1st element in [40, 44, 48, 52, 56, 60, 64]
                       choices=PSIZE_CHOICES,
                       label='Patch size',
-                      important=True,
                       help='Size of patches loaded into memory for training.')
 
         form.addParam('bsize', params.IntParam,
                       default=25,
                       label='Batch size',
-                      important=True,
                       help='Number of patches used to compute average loss.')
 
         form.addParam('epochs', params.IntParam,
                       default=100,
                       label='Number of epochs',
-                      important=True,
                       help='At the end of each epoch, evaluation on validation set is performed (useful to check if '
                            'network overfits).')
 
         form.addParam('stepsPerE', params.IntParam,
                       default=100,
                       label='Steps per epoch',
-                      important=True,
                       help='Number of batches trained on per epoch.')
 
         form.addParam('stepsPerV', params.IntParam,
                       default=10,
                       label='Steps per validation',
-                      important=True,
                       help='Number of batches used for validation.')
 
         form.addParam('bootstrap', params.BooleanParam,
                       default=True,
                       label='Bootstrap',
-                      important=True,
                       help='Can remain checked. Useful when in presence of unbalanced classes.')
 
         form.addParam('rndShift', params.IntParam,
                       default=13,
                       label='Random shift',
-                      important=True,
                       help='(in voxels) Applied to positions in object list when sampling patches. Enhances network '
                            'robustness. Make sure that objects are still contained in patches when applying shift.')
 

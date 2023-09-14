@@ -71,10 +71,16 @@ class TestDeepFinderImportCoordinates(BaseTest):
         output = getattr(protCoordinates, protCoordinates._possibleOutputs.coordinates.name, None)
 
         self.assertTrue(output, "There was a problem with coordinates 3d output")
-        self.assertTrue(output.getSize() == 347)
-        self.assertTrue(output.getSamplingRate() == 10)
-
-        return output
+        self.assertEqual(output.getSize(), 347)
+        self.assertEqual(output.getSamplingRate(), 10)
+        for tomo in output.getPrecedents():
+            tomoId = tomo.getTsId()
+            for coord in output.iterCoordinates(volume=tomo):
+                self.assertEqual(coord.getTomoId(), tomoId)
+                # All the coordinates from the test dataset are of the same class
+                self.assertEqual(coord.getGroupId(), 1)
+                # The coordinates from the test data set do not have score
+                self.assertIsNone(coord.getScore())
 
 
 class TestDeepFinderGenSphereTarget(BaseTest):
@@ -84,8 +90,6 @@ class TestDeepFinderGenSphereTarget(BaseTest):
     def setUpClass(cls):
         setupTestProject(cls)
         cls.dataset = DataSet.getDataSet('deepfinder')
-        # cls.objl = cls.dataset.getFile('coordset0')
-        # cls.tomogram = cls.dataset.getFile('tomo0')
 
     def _runDeepFinderGenSphereTarget(self):
         # Get tomos:

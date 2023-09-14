@@ -25,8 +25,7 @@
 # *
 # **************************************************************************
 from enum import Enum
-from pyworkflow import BETA
-from pyworkflow.object import String, Float
+from pyworkflow.object import String
 from pyworkflow.protocol import params, PointerParam, STEPS_PARALLEL
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
@@ -34,6 +33,7 @@ from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.objects import Coordinate3D, SetOfTomograms, SetOfCoordinates3D
 from tomo.protocols import ProtTomoPicking
 from deepfinder import Plugin
+from deepfinder.constants import *
 import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
 import os
@@ -50,7 +50,6 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol analyses segmentation maps and outputs particle coordinates and class."""
 
     _label = 'cluster'
-    _devStatus = BETA
     _possibleOutputs = DFClusterOutputs
 
     def __init__(self, **args):
@@ -64,11 +63,13 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
         form.addParam('inputSegmentations', PointerParam,
                       pointerClass='SetOfTomoMasks',
-                      label="Segmentation maps", important=True,
+                      label="Segmentation maps",
+                      important=True,
                       help='Please select the segmentation maps you would like to analyze.')
         form.addParam('cradius', params.IntParam,
                       default=5,
-                      label='Clustering radius', important=True,
+                      label='Clustering radius',
+                      important=True,
                       help='Should correspond to average radius of target objects (in voxels)')
         form.addParallelSection(threads=4, mpi=1)
 
@@ -131,19 +132,19 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
         tomoId = segm.getTsId()
 
         for idx in range(len(objl_tomo)):
-            x = objl_tomo[idx]['x']
-            y = objl_tomo[idx]['y']
-            z = objl_tomo[idx]['z']
-            lbl = objl_tomo[idx]['label']
-            score = objl_tomo[idx]['cluster_size']
+            x = objl_tomo[idx][DF_COORD_X]
+            y = objl_tomo[idx][DF_COORD_Y]
+            z = objl_tomo[idx][DF_COORD_Z]
+            lbl = objl_tomo[idx][DF_LABEL]
+            score = objl_tomo[idx][DF_SCORE]
 
             coord = Coordinate3D()
             coord.setVolume(tomo)
             coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
             coord.setTomoId(tomoId)
             coord.setVolId(segmInd + 1)
-            coord._dfLabel = String(str(lbl))
-            coord._dfScore = Float(score)
+            coord.setGroupId(lbl)
+            coord.setScore(score)
 
             coord3DSet.append(coord)
 

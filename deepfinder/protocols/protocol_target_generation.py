@@ -27,7 +27,6 @@
 from enum import Enum
 from os.path import abspath
 from pwem.convert.headers import fixVolume
-from pyworkflow import BETA
 from pyworkflow.protocol import params, PointerParam, STEPS_PARALLEL
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
@@ -50,7 +49,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
      to train DeepFinder """
 
     _label = 'generate sphere targets'
-    _devStatus = BETA
     _possibleOutputs = GenTargetsOutputs
 
     def __init__(self, **args):
@@ -72,6 +70,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         form.addParam('inputCoordinates', PointerParam,
                       label="Input coordinates",
                       pointerClass='SetOfCoordinates3D',
+                      important=True,
                       help='1 coordinate set per class. A set may contain coordinates from different tomograms.')
 
         form.addParam('sphereRadii', params.StringParam,

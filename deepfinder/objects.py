@@ -24,45 +24,9 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
-from tomo.objects import Coordinate3D, SetOfCoordinates3D, Tomogram
+from tomo.objects import Coordinate3D, SetOfCoordinates3D
 import pyworkflow.object as pwobj
-from pwem.objects.data import EMObject, Volume, SetOfVolumes
-
-
-# class DeepFinderSegmentation(Tomogram):
-#     """Class for storing tomogram segmentation maps. A segmentation should always be linked to its origin tomogram."""
-#     def __init__(self, **kwargs):
-#         Tomogram.__init__(self, **kwargs)
-#         self._acquisition = None
-#         self._tsId = pwobj.String(kwargs.get('tsId', None))
-#
-#         self._tomoPointer = pwobj.Pointer(objDoStore=False)
-#         self._tomoId = pwobj.Integer()
-#         self._tomoName = pwobj.String()
-#
-#     def getTomogram(self): # does not work, similar problem to Coordinate3D.getVolume
-#         # FIXME: Update method __getitem__ and iterItems (already avalailbe in SetOfCoordinates3D and SetOfMeshes)
-#         return self._tomoPointer.get()
-#
-#     def setTomogram(self, tomo):
-#         self._tomoPointer.set(tomo)
-#         self._tomoId.set(tomo.getObjId())
-#         self._tomoName.set(tomo.getFileName())
-#         self.setSamplingRate(tomo.getSamplingRate())
-#
-#     def setTomoName(self, tomoName):
-#         self._tomoName.set(tomoName)
-#
-#     def getTomoName(self):
-#         return self._tomoName.get()
-
-
-# class SetOfDeepFinderSegmentations(SetOfVolumes):
-#     ITEM_TYPE = DeepFinderSegmentation
-#     EXPOSE_ITEMS = True
-#
-#     def __init__(self, *args, **kwargs):
-#         SetOfVolumes.__init__(self, **kwargs)
+from pwem.objects.data import EMObject
 
 
 class DeepFinderNet(EMObject):
@@ -87,26 +51,3 @@ class DeepFinderNet(EMObject):
 
     def __str__(self):
         return "DeepFinderModel(path=%s)" % self.getPath()
-
-
-class Coordinate3DWithScore(Coordinate3D):
-    """Extension of Coordinate3D adding a score attribute. Useful for automatic particle picking, where algorithms
-    may attribute scores to hits."""
-    def __init__(self, **kwargs):
-        Coordinate3D.__init__(self, **kwargs)
-        self._score = pwobj.Scalar(kwargs.get('score', None))
-
-    def getScore(self):
-        return self._score.get()
-
-    def setScore(self, x):
-        self._score.set(x)
-
-
-class SetOfCoordinates3DWithScore(SetOfCoordinates3D):
-    """ Encapsulate the logic of a set of Coordinate3DWithScore.
-    """
-    ITEM_TYPE = Coordinate3DWithScore
-
-    def __init__(self, **kwargs):
-        SetOfCoordinates3D.__init__(self, **kwargs)
