@@ -32,10 +32,10 @@ from pwem.objects.data import EMObject
 class DeepFinderNet(EMObject):
     """ Simple class to store the neural network model for DeepFinder. """
 
-    def __init__(self, path=None, **kwargs):
+    def __init__(self, path=None, noClasses=None, **kwargs):
         EMObject.__init__(self, **kwargs)
         self._path = pwobj.String(path)
-        self._nbOfClasses = pwobj.Integer() # nb of classes corresponding to this model (background included)
+        self._nbOfClasses = pwobj.Integer(noClasses)  # nb of classes corresponding to this model (background included)
 
     def getPath(self):
         return self._path.get()
@@ -44,7 +44,7 @@ class DeepFinderNet(EMObject):
         self._path.set(path)
 
     def getNbOfClasses(self):
-        return self._nbOfClasses
+        return self._nbOfClasses.get()
 
     def setNbOfClasses(self, nclass):
         self._nbOfClasses.set(nclass)

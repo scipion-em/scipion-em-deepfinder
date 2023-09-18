@@ -24,6 +24,7 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+import glob
 from enum import Enum
 from os.path import abspath
 import numpy as np
@@ -31,6 +32,7 @@ import numpy as np
 from deepfinder import Plugin
 from pwem.protocols import EMProtocol
 from pyworkflow.protocol import params, PointerParam, GPU_LIST, LEVEL_ADVANCED, FloatParam, GT, LT
+from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
 import deepfinder.convert as cv
 from deepfinder.objects import DeepFinderNet
@@ -194,11 +196,13 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         Plugin.runDeepFinder(self, 'train', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
 
     def createOutputStep(self):
-        netWeights = DeepFinderNet()
-        fname = abspath(self._getExtraPath('net_weights_FINAL.h5'))
-        netWeights.setPath(fname)
-        netWeights.setNbOfClasses(self.nClass)
-        self._defineOutputs(**{self._possibleOutputs.netWeights.name: netWeights})
+        trainingModels = sorted(glob.glob(self._getExtraPath('net_weights_*.h5')), reverse=True)
+        for trainingModel in trainingModels:
+            netWeights = DeepFinderNet(path=abspath(trainingModel),
+                                       noClasses=self.nClass)
+            modelEpoch = removeBaseExt(trainingModel).replace('net_weights_', '')
+            self._defineOutputs(**{self._possibleOutputs.netWeights.name + f'_{modelEpoch}': netWeights})
+            self._defineSourceRelation(self.tomoMasksTrain, netWeights)
 
     # --------------------------- UTILITY functions -------------------------------- #
     @staticmethod

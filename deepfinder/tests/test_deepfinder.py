@@ -24,6 +24,8 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+from os.path import exists
+
 from pyworkflow.tests import BaseTest, setupTestProject
 
 import tomo.protocols
@@ -197,7 +199,7 @@ class TestDeepFinderTrain(BaseTest):
                                      coord=outputCoords,
                                      psize=0,
                                      bsize=1,
-                                     epochs=1,
+                                     epochs=30,
                                      stepsPerE=1,
                                      stepsPerV=1)
 
@@ -211,7 +213,7 @@ class TestDeepFinderTrain(BaseTest):
                                      coord=outputCoords,
                                      psize=0,
                                      bsize=1,
-                                     epochs=1,
+                                     epochs=30,
                                      stepsPerE=1,
                                      stepsPerV=1)
 
@@ -219,10 +221,15 @@ class TestDeepFinderTrain(BaseTest):
         return protTrain
 
     def test_train(self):
+        numClasses = 2  # 1 class of particles + background class
+        outputSuffixes = ['epoch10', 'epoch20', 'epoch30', 'FINAL']
         protTrainList = self._runDeepFinderTrain()
         for protTrain in protTrainList:
-            output = getattr(protTrain, protTrain._possibleOutputs.netWeights.name, None)
-            self.assertTrue(output, "There was a problem with training output (net model weights)")
+            for suffix in outputSuffixes:
+                output = getattr(protTrain, f'{protTrain._possibleOutputs.netWeights.name}_{suffix}', None)
+                self.assertTrue(output, "There was a problem with training output (net model weights)")
+                self.assertEqual(output.getNbOfClasses(), numClasses)
+                self.assertTrue(exists(output.getPath()))
 
 
 class TestDeepFinderSegment(BaseTest):
