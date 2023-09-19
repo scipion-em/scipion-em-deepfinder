@@ -70,30 +70,6 @@ class ProtDeepFinderBase(ProtTomoBase):
 
         return objlListDict
 
-    # @staticmethod
-    # def _getObjlFromInputCoordinatesV2(tomoSet, coord3DSet): # emoebel : I modified a bit to suit my needs
-    #     """Get all Coord objects related to the given Tomogram objects.
-    #     The output is an objl as needed by DeepFinder.
-    #     The tomo_idx in the objl respects the order in tomoSet, which is important for the Train protocol
-    #     Args:
-    #         tomoSet (SetOfTomograms)
-    #         coord3DSet (SetOfCoordinates3D)
-    #     Returns:
-    #         list of dict: deep finder object list (contains particle infos)
-    #     """
-    #     # /!\ tidx is tomo index for object list, tomoId is tomo index for SetOfCoordinates3D. Not the same !!
-    #     objl = []
-    #     for tidx, tomo in enumerate(tomoSet):
-    #         tomoId = tomo.getObjId()
-    #         for coord in coord3DSet.iterCoordinates(volume=tomoId):
-    #             x = coord.getX(BOTTOM_LEFT_CORNER)
-    #             y = coord.getY(BOTTOM_LEFT_CORNER)
-    #             z = coord.getZ(BOTTOM_LEFT_CORNER)
-    #             lbl = coord.getGroupId()
-    #             cv.objl_add(objl, label=lbl, coord=[z, y, x], tomo_idx=tidx)
-    #
-    #     return objl
-
     @staticmethod
     def _getObjlFromInputCoordinatesV2(tomoMasksList, coord3DSet, nValTomoMasks):
         """Get all Coord objects related to the given Tomogram objects.
