@@ -4,6 +4,7 @@ v3.1.0:
       specifying a fraction of data.
     - Fixes in the tomogram/tomomask assignment in the segment and cluster protocols.
     - Calling the DeepFinder viewer now offers an auxiliar window to previously select the tomogram to be displayed.
+    - Add a viewer for the learning curves generated in a training.
     - The background class in now considered internally by Scipion when importing a model.
     - Critical warning about the FOV value added to the target generation protocol.
     - Beta status removed.
