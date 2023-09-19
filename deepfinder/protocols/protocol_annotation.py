@@ -33,7 +33,6 @@ from pyworkflow.utils import removeBaseExt, Message
 from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.protocols import ProtTomoPicking
 from tomo.objects import Coordinate3D, SetOfCoordinates3D
-
 import deepfinder.convert as cv
 from deepfinder.constants import *
 from deepfinder.viewers.particle_annotator_tomo_viewer import ParticleAnnotatorDialog

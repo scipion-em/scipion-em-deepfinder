@@ -25,16 +25,13 @@
 # *
 # **************************************************************************
 from os.path import exists
-
 from pyworkflow.tests import BaseTest, setupTestProject
-
 import tomo.protocols
 import pwem.protocols
-
-import deepfinder.protocols
 from tomo.protocols.protocol_import_tomograms import OUTPUT_NAME
-
 from . import DataSet
+from ..protocols import ImportCoordinates3D, DeepFinderGenerateTrainingTargetsSpheres, DeepFinderTrain, \
+    ProtDeepFinderLoadTrainingModel, DeepFinderSegment, DeepFinderCluster
 
 
 class TestDeepFinderImportCoordinates(BaseTest):
@@ -60,7 +57,7 @@ class TestDeepFinderImportCoordinates(BaseTest):
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Define and launch test protocol:
-        protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
+        protImportCoordinates3d = self.newProtocol(ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
                                                    importTomograms=protImportTomogram.Tomograms,
                                                    filesPattern='*.xml')
@@ -106,7 +103,7 @@ class TestDeepFinderGenSphereTarget(BaseTest):
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Get coordinates:
-        protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
+        protImportCoordinates3d = self.newProtocol(ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
                                                    importTomograms=protImportTomogram.Tomograms,
                                                    filesPattern='*.xml')
@@ -116,7 +113,7 @@ class TestDeepFinderGenSphereTarget(BaseTest):
         self.assertIsNotNone(output, "There was a problem with coordinate output")
 
         # Define and launch test protocol:
-        protGenTargets = self.newProtocol(deepfinder.protocols.DeepFinderGenerateTrainingTargetsSpheres,
+        protGenTargets = self.newProtocol(DeepFinderGenerateTrainingTargetsSpheres,
                                           inputCoordinates=output,
                                           sphereRadii=10)
 
@@ -158,7 +155,7 @@ class TestDeepFinderTrain(BaseTest):
         self.assertIsNotNone(outputTomograms, "There was a problem with tomogram output")
 
         # Get coordinates:
-        protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
+        protImportCoordinates3d = self.newProtocol(ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
                                                    importTomograms=outputTomograms,
                                                    filesPattern='*.xml')
@@ -167,7 +164,7 @@ class TestDeepFinderTrain(BaseTest):
         self.assertIsNotNone(outputCoords, "There was a problem with coordinate output")
 
         # Get tomo masks (targets):
-        protGenTargets = self.newProtocol(deepfinder.protocols.DeepFinderGenerateTrainingTargetsSpheres,
+        protGenTargets = self.newProtocol(DeepFinderGenerateTrainingTargetsSpheres,
                                           inputCoordinates=outputCoords,
                                           sphereRadii=10)
 
@@ -193,7 +190,7 @@ class TestDeepFinderTrain(BaseTest):
 
     def _runTrainingWithInValSet(self, tomoMasksTrain, tomoMasksValid, outputCoords):
         # Param values are chosen so that computation is inexpensive. The output net weights will not be useful.
-        protTrain = self.newProtocol(deepfinder.protocols.DeepFinderTrain,
+        protTrain = self.newProtocol(DeepFinderTrain,
                                      tomoMasksTrain=tomoMasksTrain,
                                      tomoMasksValid=tomoMasksValid,
                                      coord=outputCoords,
@@ -208,7 +205,7 @@ class TestDeepFinderTrain(BaseTest):
 
     def _runTrainingWithoutInValSet(self, outputSegs, outputCoords):
         # Param values are chosen so that computation is inexpensive. The output net weights will not be useful.
-        protTrain = self.newProtocol(deepfinder.protocols.DeepFinderTrain,
+        protTrain = self.newProtocol(DeepFinderTrain,
                                      tomoMasksTrain=outputSegs,
                                      coord=outputCoords,
                                      psize=0,
@@ -251,7 +248,7 @@ class TestDeepFinderSegment(BaseTest):
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Get model weights:
-        protImportModel = self.newProtocol(deepfinder.protocols.ProtDeepFinderLoadTrainingModel,
+        protImportModel = self.newProtocol(ProtDeepFinderLoadTrainingModel,
                                            netWeightsFile=self.dataset.getPath() + '/net_weights_SHREC2019_4B4T.h5',
                                            numClasses=1)
         self.launchProtocol(protImportModel)
@@ -259,7 +256,7 @@ class TestDeepFinderSegment(BaseTest):
         self.assertIsNotNone(output, "There was a problem with import model output")
 
         # Define and launche test protocol:
-        protSegment = self.newProtocol(deepfinder.protocols.DeepFinderSegment,
+        protSegment = self.newProtocol(DeepFinderSegment,
                                        inputTomograms=protImportTomogram.Tomograms,
                                        weights=protImportModel.netWeights,
                                        psize=80)
@@ -296,7 +293,7 @@ class TestDeepFinderCluster(BaseTest):
         self.assertIsNotNone(output, "There was a problem with tomogram output")
 
         # Get coordinates:
-        protImportCoordinates3d = self.newProtocol(deepfinder.protocols.ImportCoordinates3D,
+        protImportCoordinates3d = self.newProtocol(ImportCoordinates3D,
                                                    filesPath=self.dataset.getPath(),
                                                    importTomograms=protImportTomogram.Tomograms,
                                                    filesPattern='*.xml')
@@ -305,7 +302,7 @@ class TestDeepFinderCluster(BaseTest):
         self.assertIsNotNone(output, "There was a problem with coordinate output")
 
         # Get tomo masks (targets):
-        protGenTargets = self.newProtocol(deepfinder.protocols.DeepFinderGenerateTrainingTargetsSpheres,
+        protGenTargets = self.newProtocol(DeepFinderGenerateTrainingTargetsSpheres,
                                           inputCoordinates=output,
                                           sphereRadii=10)
 
@@ -314,7 +311,7 @@ class TestDeepFinderCluster(BaseTest):
         self.assertIsNotNone(output, "There was a problem with target generation output")
 
         # Define and launch test protocol:
-        protClust = self.newProtocol(deepfinder.protocols.DeepFinderCluster,
+        protClust = self.newProtocol(DeepFinderCluster,
                                      inputSegmentations=output,
                                      cradius=10)
         self.launchProtocol(protClust)

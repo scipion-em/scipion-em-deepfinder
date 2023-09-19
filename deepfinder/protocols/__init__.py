@@ -25,7 +25,7 @@
 # *
 # **************************************************************************
 from .protocol_base import ProtDeepFinderBase
-from .protocol_annotation import DeepFinderAnnotations 
+from .protocol_annotation import DeepFinderAnnotations
 from .protocol_target_generation import DeepFinderGenerateTrainingTargetsSpheres
 from .protocol_train import DeepFinderTrain
 from .protocol_segment import DeepFinderSegment
