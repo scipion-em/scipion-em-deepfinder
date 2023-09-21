@@ -26,7 +26,6 @@
 # **************************************************************************
 from enum import Enum
 from os.path import abspath
-from pyworkflow import BETA
 from pyworkflow.gui import askYesNo
 from pyworkflow.object import String, Integer
 from pyworkflow.protocol import IntParam
@@ -34,8 +33,8 @@ from pyworkflow.utils import removeBaseExt, Message
 from tomo.constants import BOTTOM_LEFT_CORNER
 from tomo.protocols import ProtTomoPicking
 from tomo.objects import Coordinate3D, SetOfCoordinates3D
-
 import deepfinder.convert as cv
+from deepfinder.constants import *
 from deepfinder.viewers.particle_annotator_tomo_viewer import ParticleAnnotatorDialog
 from deepfinder.viewers.particle_annotator_tree import ParticleAnnotatorProvider
 
@@ -48,7 +47,6 @@ class DeepFinderAnnotations(ProtTomoPicking):
     """This protocol allows you to annotate macromolecules in your tomograms, using a visual tool."""
 
     _label = 'annotate particles'
-    _devStatus = BETA
     _possibleOutputs = DFAnnotateOutputs
 
     def __init__(self, **args):
@@ -115,18 +113,17 @@ class DeepFinderAnnotations(ProtTomoPicking):
             annotationSummary += '\n'
 
             for idx in range(len(objl_tomo)):
-                x = objl_tomo[idx]['x']
-                y = objl_tomo[idx]['y']
-                z = objl_tomo[idx]['z']
-                lbl = objl_tomo[idx]['label']
+                x = objl_tomo[idx][DF_COORD_X]
+                y = objl_tomo[idx][DF_COORD_Y]
+                z = objl_tomo[idx][DF_COORD_Z]
+                lbl = objl_tomo[idx][DF_LABEL]
 
                 coord = Coordinate3D()
                 coord.setObjId(coordCounter + 1)
                 coord.setVolume(tomo)
                 coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                 coord.setVolId(tomo.getObjId())
-                coord._dfLabel = String(str(lbl))
-                coord.setBoxSize(self.boxSize.get())
+                coord.setGroupId(lbl)
 
                 coord3DSet.append(coord)
                 coordCounter += 1

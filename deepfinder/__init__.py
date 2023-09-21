@@ -31,7 +31,7 @@ from .constants import *
 
 __version__ = '3.1.0'
 _logo = "icon.png"
-_references = ['EMMANUEL2020']
+_references = ['EMMANUEL2021']
 
 
 class Plugin(pwem.Plugin):

@@ -26,17 +26,17 @@
 # **************************************************************************
 
 """
-@article{EMMANUEL2020,
-title = "3D ConvNet improves macromolecule localization in 3Dcellular cryo-electron tomograms",
-journal = ".",
-volume = ".",
+@article{EMMANUEL2021,
+title = "Deep Learning Improves Macromolecules Localization and Identification in 3D Cellular Cryo-Electron Tomograms",
+journal = "Nat Methods.",
+volume = "18",
 number = ".",
-pages = ".",
-year = ".",
+pages = "1386–1394",
+year = "2021",
 issn = ".",
-doi = " http://doi.org/10.1101/2020.04.15.042747",
-url = "http://www.biorxiv.org/content/10.1101/2020.04.15.042747v1",
-author = "Emmanuel Moebel, Antonio Martinez, Damien Larivière, Julio Ortiz, Wolfgang Baumeister, Charles Kervrann",
+doi = " https://doi.org/10.1038/s41592-021-01275-4",
+url = "https://www.nature.com/articles/s41592-021-01275-4",
+author = "Emmanuel Moebel, Antonio Martinez-Sanchez et al.",
 }
 
 """

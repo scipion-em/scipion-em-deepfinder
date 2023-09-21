@@ -26,18 +26,13 @@
 # **************************************************************************
 from enum import Enum
 from os.path import abspath
-
 from pwem.convert.headers import fixVolume
-from pyworkflow import BETA
-from pyworkflow.object import Set
 from pyworkflow.protocol import params, PointerParam, STEPS_PARALLEL
 from pyworkflow.utils import removeBaseExt
 from pyworkflow.utils.properties import Message
-
 from pwem.protocols import EMProtocol
 from tomo.protocols import ProtTomoBase
 from tomo.objects import TomoMask, SetOfTomoMasks
-
 from deepfinder import Plugin
 import deepfinder.convert as cv
 from deepfinder.protocols import ProtDeepFinderBase
@@ -54,7 +49,6 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
      to train DeepFinder """
 
     _label = 'generate sphere targets'
-    _devStatus = BETA
     _possibleOutputs = GenTargetsOutputs
 
     def __init__(self, **args):
@@ -76,6 +70,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         form.addParam('inputCoordinates', PointerParam,
                       label="Input coordinates",
                       pointerClass='SetOfCoordinates3D',
+                      important=True,
                       help='1 coordinate set per class. A set may contain coordinates from different tomograms.')
 
         form.addParam('sphereRadii', params.StringParam,
@@ -91,12 +86,10 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
     def _insertAllSteps(self):
         # Insert processing steps
         tomoDictList = self._initialize()
-        counter = 0
         launchIdList = []
         for tomoDict in tomoDictList:
             launchId = self._insertFunctionStep(self.launchTargetGenerationStep, tomoDict, prerequisites=[])
             launchIdList.append(launchId)
-            counter += 1
         self._insertFunctionStep(self.createOutputStep, tomoDictList, prerequisites=launchIdList)
 
     def _initialize(self):
@@ -189,7 +182,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
     def _validate(self):
         errorMsg = []
         radius_list_string = self.sphereRadii.get()
-        radius_list = [int(r) >= 48 for r in radius_list_string.split(',')]
+        radius_list = [int(r) >= 24 for r in radius_list_string.split(',')]
         if any(radius_list):
             errorMsg.append('None of the radius values introduced should be *smaller than 48 voxels* ('
                             '[https://doi.org/10.1038/s41592-021-01275-4] receptive field '

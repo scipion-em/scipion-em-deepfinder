@@ -1,5 +1,7 @@
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
+
+from deepfinder.constants import *
+
 
 def objl_read(filename):
     tree = ET.parse(filename)
@@ -8,42 +10,42 @@ def objl_read(filename):
     objl = []
     for p in range(len(objl_xml)):
         # Mandatory attributes:
-        lbl = int(objl_xml[p].get('class_label'))
-        x = float(objl_xml[p].get('x'))
-        y = float(objl_xml[p].get('y'))
-        z = float(objl_xml[p].get('z'))
+        lbl = int(objl_xml[p].get(DF_LABEL))
+        x = float(objl_xml[p].get(DF_COORD_X))
+        y = float(objl_xml[p].get(DF_COORD_Y))
+        z = float(objl_xml[p].get(DF_COORD_Z))
 
         # Optional attributes:
-        tidx = objl_xml[p].get('tomo_idx')
-        objid = objl_xml[p].get('obj_id')
-        psi = objl_xml[p].get('psi')
-        phi = objl_xml[p].get('phi')
-        the = objl_xml[p].get('the')
-        csize = objl_xml[p].get('cluster_size')
+        tidx = objl_xml[p].get(DF_TOMO_IDX)
+        objid = objl_xml[p].get(DF_OBJ_ID)
+        psi = objl_xml[p].get(DF_PSI)
+        phi = objl_xml[p].get(DF_PHI)
+        the = objl_xml[p].get(DF_THETA)
+        csize = objl_xml[p].get(DF_SCORE)
 
         # if optional attributes exist, then cast to correct type:
-        if tidx != None:
+        if tidx is not None:
             tidx = int(tidx)
-        if objid != None:
+        if objid is not None:
             objid = int(objid)
-        if csize != None:
+        if csize is not None:
             csize = int(csize)
-        if psi != None or phi != None or the != None:
+        if psi is not None or phi is not None or the is not None:
             psi = float(psi)
             phi = float(phi)
             the = float(the)
 
         obj = {
-            'tomo_idx': tidx,
-            'obj_id': objid,
-            'label': lbl,
-            'x': x,
-            'y': y,
-            'z': z,
-            'psi': phi,
-            'phi': psi,
-            'the': the,
-            'cluster_size': csize
+            DF_TOMO_IDX: tidx,
+            DF_OBJ_ID: objid,
+            DF_LABEL: lbl,
+            DF_COORD_X: x,
+            DF_COORD_Y: y,
+            DF_COORD_Z: z,
+            DF_PSI: phi,
+            DF_PHI: psi,
+            DF_THETA: the,
+            DF_SCORE: csize
         }
 
         objl.append(obj)
@@ -53,52 +55,51 @@ def objl_read(filename):
 def objl_write(objl, filename):
     objl_xml = ET.Element('objlist')
     for idx in range(len(objl)):
-        tidx  = objl[idx]['tomo_idx']
-        objid = objl[idx]['obj_id']
-        lbl   = objl[idx]['label']
-        x     = objl[idx]['x']
-        y     = objl[idx]['y']
-        z     = objl[idx]['z']
-        psi   = objl[idx]['psi']
-        phi   = objl[idx]['phi']
-        the   = objl[idx]['the']
-        csize = objl[idx]['cluster_size']
+        tidx = objl[idx][DF_TOMO_IDX]
+        objid = objl[idx][DF_OBJ_ID]
+        lbl = objl[idx][DF_LABEL]
+        x = objl[idx][DF_COORD_X]
+        y = objl[idx][DF_COORD_Y]
+        z = objl[idx][DF_COORD_Z]
+        psi = objl[idx][DF_PSI]
+        phi = objl[idx][DF_PHI]
+        the = objl[idx][DF_THETA]
+        csize = objl[idx][DF_SCORE]
 
         obj = ET.SubElement(objl_xml, 'object')
-        if tidx!=None:
-            obj.set('tomo_idx', str(tidx))
-        if objid!=None:
-            obj.set('obj_id', str(objid))
-        obj.set('class_label' , str(lbl))
-        obj.set('x'           , '%.3f' % x)
-        obj.set('y'           , '%.3f' % y)
-        obj.set('z'           , '%.3f' % z)
-        if psi!=None:
-            obj.set('psi', '%.3f' % psi)
-        if phi!=None:
-            obj.set('phi', '%.3f' % phi)
-        if the!=None:
-            obj.set('the', '%.3f' % the)
-        if csize!=None:
-            obj.set('cluster_size', str(csize))
+        if tidx is not None:
+            obj.set(DF_TOMO_IDX, str(tidx))
+        if objid is not None:
+            obj.set(DF_OBJ_ID, str(objid))
+        obj.set(DF_LABEL, str(lbl))
+        obj.set(DF_COORD_X, '%.3f' % x)
+        obj.set(DF_COORD_Y, '%.3f' % y)
+        obj.set(DF_COORD_Z, '%.3f' % z)
+        if psi is not None:
+            obj.set(DF_PSI, '%.3f' % psi)
+        if phi is not None:
+            obj.set(DF_PHI, '%.3f' % phi)
+        if the is not None:
+            obj.set(DF_THETA, '%.3f' % the)
+        if csize is not None:
+            obj.set(DF_SCORE, str(csize))
 
     tree = ET.ElementTree(objl_xml)
     tree.write(filename)
 
 
-
 def objl_add(objl, label, coord, obj_id=None, tomo_idx=None, orient=(None, None, None), cluster_size=None):
     obj = {
-        'tomo_idx': tomo_idx,
-        'obj_id': obj_id,
-        'label': label,
-        'x': coord[2],
-        'y': coord[1],
-        'z': coord[0],
-        'psi': orient[0],
-        'phi': orient[1],
-        'the': orient[2],
-        'cluster_size': cluster_size
+        DF_TOMO_IDX: tomo_idx,
+        DF_OBJ_ID: obj_id,
+        DF_LABEL: label,
+        DF_COORD_X: coord[2],
+        DF_COORD_Y: coord[1],
+        DF_COORD_Z: coord[0],
+        DF_PSI: orient[0],
+        DF_PHI: orient[1],
+        DF_THETA: orient[2],
+        DF_SCORE: cluster_size
     }
     objl.append(obj)
     return objl
@@ -110,10 +111,10 @@ def objl_get_labels(objl):
     """
     class_list = []
     for idx in range(len(objl)):
-        class_list.append(objl[idx]['label'])
+        class_list.append(objl[idx][DF_LABEL])
     # Set only stores a value once even if it is inserted more then once:
-    lbl_set  = set(class_list) # insert the list to the set
-    lbl_list = (list(lbl_set)) # convert the set to the list
+    lbl_set = set(class_list)  # insert the list to the set
+    lbl_list = (list(lbl_set))  # convert the set to the list
     return lbl_list
 
 
@@ -125,11 +126,11 @@ def objl_get_class(objl, label):
         objl (list of dict)
         label (int)
     Returns:
-        list of dict: contains only objects from class 'label'
+        list of dict: contains only objects from class DF_LABEL
     """
     idx_class = []
     for idx in range(len(objl)):
-        if str(objl[idx]['label'])==str(label):
+        if str(objl[idx][DF_LABEL]) == str(label):
             idx_class.append(idx)
 
     objlOUT = []
@@ -137,60 +138,12 @@ def objl_get_class(objl, label):
         objlOUT.append(objl[idx_class[idx]])
     return objlOUT
 
-def objl_get_tomo(objl, tomo_idx):
-    """
-    Get all objects originating from tomo 'tomo_idx'.
 
-    Args:
-        objl (list of dict): contains objects from various tomograms
-        tomo_idx (int): tomogram index
-    Returns:
-        list of dict: contains objects from tomogram 'tomo_idx'
-    """
-    idx_tomo = []
-    for idx in range(len(objl)):
-        if objl[idx]['tomo_idx'] == tomo_idx:
-            idx_tomo.append(idx)
-
-    objlOUT = []
-    for idx in range(len(idx_tomo)):
-        objlOUT.append(objl[idx_tomo[idx]])
-    return objlOUT
-
-def objl_disp(objlIN):
-    """Prints objl in terminal"""
-    for p in range(len(objlIN)):
-        tidx  = objlIN[p]['tomo_idx']
-        objid = objlIN[p]['obj_id']
-        lbl   = objlIN[p]['label']
-        x     = objlIN[p]['x']
-        y     = objlIN[p]['y']
-        z     = objlIN[p]['z']
-        psi   = objlIN[p]['psi']
-        phi   = objlIN[p]['phi']
-        the   = objlIN[p]['the']
-        csize = objlIN[p]['cluster_size']
-
-        strout = 'obj ' + str(p) + ': ('
-        if tidx!=None:
-            strout = strout + 'tomo_idx:' + str(tidx) + ', '
-        if objid!=None:
-            strout = strout + 'obj_id:' + str(objid) + ', '
-        strout = strout + 'lbl:' + str(lbl) + ', x:' + str(x) + ', y:' + str(y) + ', z:' + str(z) + ', '
-        if psi!=None or phi!=None or the!=None:
-            strout = strout + 'psi:' + str(psi) + ', phi:' + str(phi) + ', the:' + str(the) + ', '
-        if csize!=None:
-            strout = strout + 'cluster_size:' + str(csize)
-        strout = strout + ')'
-
-        print(strout)
-
-
-class ParamsGenTarget():
+class ParamsGenTarget:
     def __init__(self):
         self.path_objl = str()
         self.path_initial_vol = str()
-        self.tomo_size = (int(), int(), int()) # (dimZ,dimY,dimX)
+        self.tomo_size = (int(), int(), int())  # (dimZ,dimY,dimX)
         self.strategy = str()
         self.radius_list = [int()]
         self.path_mask_list = [str()]
@@ -223,7 +176,7 @@ class ParamsGenTarget():
 
         p = ET.SubElement(root, 'path_mask_list')
         for idx in range(len(self.path_mask_list)):
-            pp = ET.SubElement(p, 'class'+str(idx + 1))
+            pp = ET.SubElement(p, 'class' + str(idx + 1))
             pp.set('path', str(self.path_mask_list[idx]))
 
         p = ET.SubElement(root, 'path_target')
@@ -233,7 +186,7 @@ class ParamsGenTarget():
         tree.write(filename)
 
 
-class ParamsTrain():
+class ParamsTrain:
     def __init__(self):
         self.path_out = str()
         self.path_tomo = [str()]
@@ -265,7 +218,6 @@ class ParamsTrain():
         for idx in range(len(self.path_target)):
             pp = ET.SubElement(p, 'target' + str(idx))
             pp.set('path', str(self.path_target[idx]))
-
 
         p = ET.SubElement(root, 'path_objl_train')
         p.set('path', str(self.path_objl_train))
