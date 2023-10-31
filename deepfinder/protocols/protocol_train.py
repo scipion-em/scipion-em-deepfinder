@@ -73,18 +73,28 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                       help='Training dataset. Please select here your TomoMasks. '
                            'The corresponding tomograms will be loaded automatically.')
 
+        form.addParam('useSpecificValidation', params.BooleanParam,
+                      expertLevel=LEVEL_ADVANCED,
+                      default='False',
+                      label="Use specific set for Validation?",
+                      help='Recommended value as false. The default value (False) will atuomatically split '
+                      'the set of tomo masks according to the "Validation data fraction". If this parameter '
+                      ' is true, the user can provide a certain set of tomoMask for validating the training.')
+
         form.addParam('tomoMasksValid', PointerParam,
+                      expertLevel=LEVEL_ADVANCED,
+                      condition='useSpecificValidation',
                       pointerClass='SetOfTomoMasks',
                       label="Validation TomoMasks",
                       allowsNull=True,
-                      help='Validation dataset. If empty, the tomo mask will be randomly split following the '
-                           'fraction specified in the parameter "Validation data fraction".')
+                      help='(Only available when "Use specific set for Validation" is True.) This is the validation'
+                      ' set of tomo Masks to ensure that the network learns properly.')
 
         form.addParam('valDataFraction', FloatParam,
                       label='Validation data fraction',
+                      condition='not useSpecificValidation ',
                       default=0.3,
                       validators=[GT(0.1), LT(0.5)],
-                      condition='not tomoMasksValid',
                       help='Fraction of the "Training Tomomasks" that will be used as validation dataset. The admitted '
                            'values are [0.1, 0.5], which means from 10% to 50% of the introduced training tomo masks. '
                            'Only applies if "Validation TomoMasks" is empty.')
@@ -287,6 +297,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         errorMsg = []
         trainTomoMasks = self.tomoMasksTrain.get()
         valTomoMasks = self.tomoMasksValid.get()
+        valFraction = self.valDataFraction.get()
         if valTomoMasks and trainTomoMasks:
             if len(valTomoMasks) > len(trainTomoMasks):
                 errorMsg.append('The validation masks set must be of the same or lower size than the training '
@@ -294,4 +305,8 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         elif not valTomoMasks and len(trainTomoMasks) == 1:
             errorMsg.append('If no validation tomo masks are provided, the size of the training masks set must '
                             'be at least 2.')
+        if self.useSpecificValidation.get() and not valTomoMasks:
+            errorMsg.append('Please provide a validation set.')
+
         return errorMsg
+

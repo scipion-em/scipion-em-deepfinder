@@ -191,6 +191,7 @@ class TestDeepFinderTrain(BaseTest):
     def _runTrainingWithInValSet(self, tomoMasksTrain, tomoMasksValid, outputCoords):
         # Param values are chosen so that computation is inexpensive. The output net weights will not be useful.
         protTrain = self.newProtocol(DeepFinderTrain,
+                                     useSpecificValidation=True,
                                      tomoMasksTrain=tomoMasksTrain,
                                      tomoMasksValid=tomoMasksValid,
                                      coord=outputCoords,
@@ -207,6 +208,7 @@ class TestDeepFinderTrain(BaseTest):
         # Param values are chosen so that computation is inexpensive. The output net weights will not be useful.
         protTrain = self.newProtocol(DeepFinderTrain,
                                      tomoMasksTrain=outputSegs,
+                                     useSpecificValidation=False,
                                      coord=outputCoords,
                                      psize=0,
                                      bsize=1,
@@ -326,3 +328,4 @@ class TestDeepFinderCluster(BaseTest):
         self.assertTrue(output.getSize() == 155)
 
         return output
+
