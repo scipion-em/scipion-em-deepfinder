@@ -184,7 +184,7 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         radius_list_string = self.sphereRadii.get()
         radius_list = [int(r) >= 24 for r in radius_list_string.split(',')]
         if any(radius_list):
-            errorMsg.append('None of the radius values introduced should be *smaller than 48 voxels* ('
+            errorMsg.append('None of the radius values introduced should be *smaller than 24 voxels* ('
                             '[https://doi.org/10.1038/s41592-021-01275-4] receptive field '
                             'of the network --> the network would be more likely to detect objects that are smaller '
                             'than or equal to the receptive field size.)\n\n'
