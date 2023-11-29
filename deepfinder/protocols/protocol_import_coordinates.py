@@ -25,26 +25,28 @@
 # *
 # **************************************************************************
 import os
+from enum import Enum
 from os.path import basename
 
-from pyworkflow import BETA
-from pyworkflow.object import String
+from deepfinder.constants import *
+from pyworkflow.protocol import LEVEL_ADVANCED
+from pyworkflow.utils import removeBaseExt
 from tomo.constants import BOTTOM_LEFT_CORNER
-
 from tomo.objects import SetOfCoordinates3D, Coordinate3D
 from tomo.protocols.protocol_base import ProtTomoImportFiles
-
 import pyworkflow.protocol.params as params
-
 import deepfinder.convert as cv
+
+
+class DFImportCoordsOutputs(Enum):
+    coordinates = SetOfCoordinates3D
 
 
 class ImportCoordinates3D(ProtTomoImportFiles):
     """Protocol to import a DeepFinder object list as a set of 3D coordinates in Scipion"""
 
-    _outputClassName = 'SetOfCoordinates3D'
-    _label = 'import coordinates'
-    _devStatus = BETA
+    _label = 'import DeepFinder coordinates'
+    _possibleOutputs = DFImportCoordsOutputs
 
     def _defineParams(self, form):
         ProtTomoImportFiles._defineImportParams(self, form)
@@ -55,43 +57,51 @@ class ImportCoordinates3D(ProtTomoImportFiles):
                       help='Select the tomograms/tomogram for which you '
                            'want to import coordinates. The file names of the tomogram and '
                            'coordinate files must be the same.')
+        form.addParam('boxSize', params.IntParam,
+                      label="Box size",
+                      expertLevel=LEVEL_ADVANCED,
+                      default=50,
+                      help='Default box size for the output.')
 
     def _insertAllSteps(self):
-        self._insertFunctionStep('importCoordinatesStep')
+        self._insertFunctionStep(self.importCoordinatesStep)
 
     # --------------------------- STEPS functions -----------------------------
     def importCoordinatesStep(self):
         importTomograms = self.importTomograms.get()
-        suffix = self._getOutputSuffix(SetOfCoordinates3D)
-        coord3DSet = self._createSetOfCoordinates3D(importTomograms, suffix)
-
+        boxSize = self.boxSize.get()
+        coord3DSet = SetOfCoordinates3D.create(self._getPath(), template='coordinates.sqlite')
         coord3DSet.setPrecedents(importTomograms)
+        coord3DSet.setBoxSize(boxSize)
+        coord3DSet.setSamplingRate(importTomograms.getSamplingRate())
         coordCounter = 1
         for tomoInd, tomo in enumerate(importTomograms.iterItems()):
             tomoName = basename(os.path.splitext(tomo.getFileName())[0])
             for coordFile, fileId in self.iterFiles():
-                fileName = basename(os.path.splitext(coordFile)[0])
+                fileName = removeBaseExt(coordFile)
 
                 if tomo is not None and tomoName == fileName:
                     objl = cv.objl_read(coordFile)
 
                     for idx in range(len(objl)):
-                        x = objl[idx]['x']
-                        y = objl[idx]['y']
-                        z = objl[idx]['z']
-                        lbl = objl[idx]['label']
+                        iobjl = objl[idx]
+                        x = iobjl[DF_COORD_X]
+                        y = iobjl[DF_COORD_Y]
+                        z = iobjl[DF_COORD_Z]
+                        lbl = iobjl[DF_LABEL]
+                        score = iobjl.get(DF_SCORE, None)
 
                         coord = Coordinate3D()
                         coord.setVolume(tomo)
                         coord.setObjId(coordCounter)
                         coord.setPosition(x, y, z, BOTTOM_LEFT_CORNER)
                         coord.setVolId(tomoInd + 1)
-                        coord._dfLabel = String(str(lbl))
+                        coord.setBoxSize(boxSize)
+                        coord.setGroupId(lbl)
+                        coord.setScore(score)
 
                         coord3DSet.append(coord)
                         coordCounter += 1
 
-        coord3DSet.setSamplingRate(importTomograms.getSamplingRate())
-
-        self._defineOutputs(outputCoordinates=coord3DSet)
+        self._defineOutputs(**{self._possibleOutputs.coordinates.name: coord3DSet})
         self._defineSourceRelation(self.importTomograms, coord3DSet)

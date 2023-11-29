@@ -1,0 +1,15 @@
+v3.1.0:
+    - Target generation and cluster protocols can be now parallelized using threads.
+    - The training and validation datasets can be both introduced manually or generated from the training dataset
+      specifying a fraction of data.
+    - Fixes in the tomogram/tomomask assignment in the segment and cluster protocols.
+    - Calling the DeepFinder viewer now offers an auxiliar window to previously select the tomogram to be displayed.
+    - Add a viewer for the learning curves generated in a training.
+    - The background class in now considered internally by Scipion when importing a model.
+    - Critical warning about the FOV value added to the target generation protocol.
+    - Beta status removed.
+    - Annotation protocol now allows to generate the output even though not all the tomograms have been annotated.
+      IMPORTANT: until some requested changes in the source code are carried out, the tomograms can only be annotated
+      once. Otherwise, its coordinates are lost.
+
+
