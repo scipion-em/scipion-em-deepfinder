@@ -50,6 +50,7 @@ class ParticleAnnotatorDialog(ToolbarListDialog):
                                    allowsEmptySelection=False,
                                    itemDoubleClick=self.doubleClickOnTomogram,
                                    allowSelect=False,
+                                   lockGui=False,
                                    cancelButton=True,
                                    **kwargs)
 

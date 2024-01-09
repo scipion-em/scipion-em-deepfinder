@@ -9,6 +9,7 @@ from tomo.objects import SetOfTomograms, SetOfTomoMasks, TomoMask
 
 class DeepFinderViewer(pwviewer.Viewer):
     _label = 'Ortho-slice volume explorer'
+    _name = 'Open with DeepFinder'
     _environments = [pwviewer.DESKTOP_TKINTER, Plugin.getEnviron()]
     _targets = [
         SetOfTomograms,
@@ -87,6 +88,7 @@ class DFTomoDialog(ListDialog):
         ListDialog.__init__(self, parent, title, provider,
                             message=None,
                             allowSelect=False,
+                            lockGui=False,
                             cancelButton=True,
                             **kwargs)
 
