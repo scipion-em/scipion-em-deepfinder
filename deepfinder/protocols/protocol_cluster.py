@@ -52,9 +52,9 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     _label = 'cluster'
     _possibleOutputs = DFClusterOutputs
 
+    stepsExecutionMode = STEPS_PARALLEL
     def __init__(self, **args):
         super().__init__(**args)
-        self.stepsExecutionMode = STEPS_PARALLEL
         self.clusteringSummary = String()
 
     # --------------------------- DEFINE param functions ----------------------
@@ -77,8 +77,9 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     def _insertAllSteps(self):
         tomoMasks = [tomoMask.clone() for tomoMask in self.inputSegmentations.get()]
         for ind, tomoMask in enumerate(tomoMasks):
-            pid = self._insertFunctionStep(self.launchClusteringStep, tomoMask, prerequisites=[])
-            self._insertFunctionStep(self.createOutputStep, tomoMask, ind, prerequisites=pid)
+            pid = self._insertFunctionStep(self.launchClusteringStep, tomoMask, prerequisites=[], needsGPU=False)
+            pid = self._insertFunctionStep(self.createOutputStep, tomoMask, ind, prerequisites=pid, needsGPU=False)
+        self._insertFunctionStep(self._closeOutputSet, prerequisites=[pid], needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
     def launchClusteringStep(self, segm):
@@ -106,6 +107,11 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
             coord3DSet.setPrecedents(tomograms)
             coord3DSet.setSamplingRate(setSegmentations.getSamplingRate())
             coord3DSet.setBoxSize(boxSize)
+            coord3DSet.setStreamState(coord3DSet.STREAM_OPEN)
+
+            # Define relations
+            self._defineOutputs(**{self._possibleOutputs.coordinates.name: coord3DSet})
+            self._defineSourceRelation(self.inputSegmentations, coord3DSet)
 
         clusteringSummary = ''
         # Get objl filename:
@@ -148,8 +154,6 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
             coord3DSet.append(coord)
 
-        self._defineOutputs(**{self._possibleOutputs.coordinates.name: coord3DSet})
-        self._defineSourceRelation(self.inputSegmentations, coord3DSet)
 
         self.clusteringSummary.set(clusteringSummary)
         self._store(self.clusteringSummary)

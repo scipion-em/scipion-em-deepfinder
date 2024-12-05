@@ -72,6 +72,8 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         for tomo in tomoList:
             self._insertFunctionStep(self.launchSegmentationStep, tomo)
             self._insertFunctionStep(self.createOutputStep, tomo)
+        # Add a final step to close the sets
+        self._insertFunctionStep(self._closeOutputSet, needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
     def launchSegmentationStep(self, tomo):
@@ -84,7 +86,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         deepfinder_args += ' -p ' + str(self.psize)
         deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
 
-        Plugin.runDeepFinder(self, 'segment', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
+        Plugin.runDeepFinder(self, 'segment', deepfinder_args)
 
     def createOutputStep(self, tomo):
         tomoMaskSet = getattr(self, self._possibleOutputs.segmentations.name, None)
@@ -93,6 +95,12 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             tomoMaskSet.copyInfo(self.inputTomograms.get())
             tomoMaskSet.setDim(self.inputTomograms.get().getDimensions())
             tomoMaskSet.setName('segmented tomogram set')
+            tomoMaskSet.setStreamState(tomoMaskSet.STREAM_OPEN)
+
+            # Link to output:
+            self._defineOutputs(**{self._possibleOutputs.segmentations.name: tomoMaskSet})
+            self._defineSourceRelation(self.weights, tomoMaskSet)
+            self._defineSourceRelation(self.inputTomograms, tomoMaskSet)
 
         tomoMaskName = self._genOutputFileName(tomo)
         # Import generated target from extra folder and store into TomoMask object:
@@ -105,10 +113,6 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         tomoMask.setVolName(tomo.getFileName())
         tomoMaskSet.append(tomoMask)
 
-        # Link to output:
-        self._defineOutputs(**{self._possibleOutputs.segmentations.name: tomoMaskSet})
-        self._defineSourceRelation(self.weights, tomoMaskSet)
-        self._defineSourceRelation(self.inputTomograms, tomoMaskSet)
 
     # --------------------------- INFO functions ----------------------
     def _summary(self):

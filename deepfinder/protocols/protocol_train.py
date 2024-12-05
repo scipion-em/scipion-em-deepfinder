@@ -203,7 +203,7 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
 
         # Launch DeepFinder training:
         deepfinder_args = '-p ' + fname_params
-        Plugin.runDeepFinder(self, 'train', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
+        Plugin.runDeepFinder(self, 'train', deepfinder_args, useGPU=True)
 
     def createOutputStep(self):
         trainingModels = sorted(glob.glob(self._getExtraPath('net_weights_*.h5')), reverse=True)

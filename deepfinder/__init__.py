@@ -29,7 +29,7 @@ from pyworkflow.utils import Environ
 from .constants import *
 
 
-__version__ = '3.2.0'
+__version__ = '3.2.1'
 _logo = "icon.png"
 _references = ['EMMANUEL2021']
 
@@ -45,14 +45,13 @@ class Plugin(pwem.Plugin):
         cls._defineVar(DF_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
 
     @classmethod
-    def getEnviron(cls, gpuId='0'):
+    def getEnviron(cls):
         """ Setup the environment variables needed to launch deepfinder. """
         environ = Environ(os.environ)
         if 'PYTHONPATH' in environ:
             # this is required for python virtual env to work
             del environ['PYTHONPATH']
 
-        environ.update({'CUDA_VISIBLE_DEVICES': gpuId})
         return environ
 
     @classmethod
@@ -60,10 +59,15 @@ class Plugin(pwem.Plugin):
         return cls.getVar(DF_ENV_ACTIVATION)
 
     @classmethod
-    def runDeepFinder(cls, protocol, program, args, cwd=None, gpuId='0'):
+    def runDeepFinder(cls, protocol, program, args, cwd=None, useGPU=False):
         program = cls.getDeepFinderProgram(program)
-        fullProgram = '%s %s && %s' % (cls.getCondaActivationCmd(), cls.getDeepFinderEnvActivation(), program)
-        protocol.runJob(fullProgram, args, env=cls.getEnviron(gpuId=gpuId), cwd=cwd)
+
+        cmd = '%s %s && ' % (cls.getCondaActivationCmd(), cls.getDeepFinderEnvActivation())
+
+        if useGPU:
+            cmd += "CUDA_VISIBLE_DEVICES=%(GPU)s "
+        cmd += program
+        protocol.runJob(cmd, args, env=cls.getEnviron(), cwd=cwd)
 
     @classmethod
     def getDeepFinderProgram(cls, program):
