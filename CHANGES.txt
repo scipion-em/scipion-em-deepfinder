@@ -1,3 +1,6 @@
+v3.2.1:
+    - Deepfinder template added
+    - Segment and cluster protocols opens and closes the set
 v3.2.0:
     - Prevent viewers from locking the screen focus.
 v3.1.0:
