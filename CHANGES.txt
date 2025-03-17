@@ -1,8 +1,10 @@
-v3.2.1:
-    - Deepfinder template added
-    - Segment and cluster protocols opens and closes the set
 v3.2.0:
-    - Prevent viewers from locking the screen focus.
+ Users:
+   - Deepfinder template added
+   - Segment and cluster protocols semi-streamified.
+   - Prevent viewers from locking the screen focus.
+ Developers:
+   - Replacethe setup.py by the corresponding pyproject.toml.
 v3.1.0:
     - Target generation and cluster protocols can be now parallelized using threads.
     - The training and validation datasets can be both introduced manually or generated from the training dataset
