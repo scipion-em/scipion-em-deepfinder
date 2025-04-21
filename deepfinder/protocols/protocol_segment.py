@@ -24,16 +24,18 @@
 # *  e-mail address 'you@yourinstitution.email'
 # *
 # **************************************************************************
+import logging
 from enum import Enum
 from os.path import abspath
-from pyworkflow.protocol import params, PointerParam, GPU_LIST, LEVEL_ADVANCED
-from pyworkflow.utils import removeBaseExt
+from pyworkflow.protocol import params, PointerParam, GPU_LIST, LEVEL_ADVANCED, STEPS_PARALLEL
+from pyworkflow.utils import removeBaseExt, cyanStr
 from pyworkflow.utils.properties import Message
 from tomo.objects import Tomogram, TomoMask, SetOfTomoMasks
 from tomo.protocols import ProtTomoPicking
-
 from deepfinder import Plugin
 from deepfinder.protocols import ProtDeepFinderBase
+
+logger = logging.getLogger(__name__)
 
 
 class DFSegmentOutputs(Enum):
@@ -45,6 +47,11 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
 
     _label = 'segment'
     _possibleOutputs = DFSegmentOutputs
+    stepsExecutionMode = STEPS_PARALLEL
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.tomoDict = None
 
     # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -68,13 +75,28 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        tomoList = [tomo.clone() for tomo in self.inputTomograms.get()]
-        for tomo in tomoList:
-            self._insertFunctionStep(self.launchSegmentationStep, tomo)
-            self._insertFunctionStep(self.createOutputStep, tomo)
+        self.__initialize()
+        closeDpes = []
+        for tsId in self.tomoDict.keys():
+            segId = self._insertFunctionStep(self.launchSegmentationStep, tsId,
+                                             prerequisites=[],
+                                             needsGPU=True)
+            cOutId = self._insertFunctionStep(self.createOutputStep, tsId,
+                                              prerequisites=segId,
+                                              needsGPU=False)
+            closeDpes.append(cOutId)
+        # Add a final step to close the sets
+        self._insertFunctionStep(self._closeOutputSet,
+                                 prerequisites=closeDpes,
+                                 needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
-    def launchSegmentationStep(self, tomo):
+    def __initialize(self):
+        self.tomoDict = {tomo.getTsId(): tomo.clone() for tomo in self.inputTomograms.get()}
+
+    def launchSegmentationStep(self, tsId: str):
+        logger.info(cyanStr(f'Segmenting step of ---> {tsId}'))
+        tomo = self.tomoDict[tsId]
         outputFileName = self._genOutputFileName(tomo)
 
         # Launch annotation GUI passing the tomogram file name
@@ -84,31 +106,24 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         deepfinder_args += ' -p ' + str(self.psize)
         deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
 
-        Plugin.runDeepFinder(self, 'segment', deepfinder_args, gpuId=getattr(self, GPU_LIST).get())
+        Plugin.runDeepFinder(self, 'segment', deepfinder_args)
 
-    def createOutputStep(self, tomo):
-        tomoMaskSet = getattr(self, self._possibleOutputs.segmentations.name, None)
-        if not tomoMaskSet:
-            tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
-            tomoMaskSet.copyInfo(self.inputTomograms.get())
-            tomoMaskSet.setDim(self.inputTomograms.get().getDimensions())
-            tomoMaskSet.setName('segmented tomogram set')
+    def createOutputStep(self, tsId: str):
+        with self._lock:
+            logger.info(cyanStr(f'Generating the output of ---> {tsId}'))
+            tomo = self.tomoDict[tsId]
+            tomoMaskSet = self.createOutputSet()
 
-        tomoMaskName = self._genOutputFileName(tomo)
-        # Import generated target from extra folder and store into TomoMask object:
-        tomoMask = TomoMask()
-        tomoMask.cleanObjId()
-        tomoMask.copyInfo(tomo)
-        tomoMask.setFileName(self._getExtraPath(tomoMaskName))
+            tomoMaskName = self._genOutputFileName(tomo)
+            # Import generated target from extra folder and store into TomoMask object:
+            tomoMask = TomoMask()
+            tomoMask.cleanObjId()
+            tomoMask.copyInfo(tomo)
+            tomoMask.setFileName(self._getExtraPath(tomoMaskName))
 
-        # Link to origin tomogram:
-        tomoMask.setVolName(tomo.getFileName())
-        tomoMaskSet.append(tomoMask)
-
-        # Link to output:
-        self._defineOutputs(**{self._possibleOutputs.segmentations.name: tomoMaskSet})
-        self._defineSourceRelation(self.weights, tomoMaskSet)
-        self._defineSourceRelation(self.inputTomograms, tomoMaskSet)
+            # Link to origin tomogram:
+            tomoMask.setVolName(tomo.getFileName())
+            tomoMaskSet.append(tomoMask)
 
     # --------------------------- INFO functions ----------------------
     def _summary(self):
@@ -157,3 +172,23 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     @staticmethod
     def _genOutputFileName(tomo):
         return 'segmentation_' + removeBaseExt(tomo.getFileName()) + '.mrc'
+
+    def createOutputSet(self) -> SetOfTomoMasks:
+        tomoMaskSet = getattr(self, self._possibleOutputs.segmentations.name, None)
+        if tomoMaskSet:
+            tomoMaskSet.enableAppend()
+        else:
+            inTomosPointer = self.inputTomograms
+            inTomos = inTomosPointer.get()
+            tomoMaskSet = SetOfTomoMasks.create(self._getPath(), template='setOfTomoMasks%s.sqlite')
+            tomoMaskSet.copyInfo(inTomos)
+            tomoMaskSet.setDim(inTomos.getDimensions())
+            tomoMaskSet.setName('segmented tomogram set')
+            tomoMaskSet.setStreamState(tomoMaskSet.STREAM_OPEN)
+
+            # Link to output:
+            self._defineOutputs(**{self._possibleOutputs.segmentations.name: tomoMaskSet})
+            self._defineSourceRelation(self.weights, tomoMaskSet)
+            self._defineSourceRelation(inTomosPointer, tomoMaskSet)
+
+        return tomoMaskSet

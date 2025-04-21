@@ -51,9 +51,9 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
     _label = 'generate sphere targets'
     _possibleOutputs = GenTargetsOutputs
 
+    stepsExecutionMode = STEPS_PARALLEL
     def __init__(self, **args):
         EMProtocol.__init__(self, **args)
-        self.stepsExecutionMode = STEPS_PARALLEL
         self.tomoSet = None
         self.coord3DSet = None
         self.objlTomoList = None
@@ -88,9 +88,9 @@ class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, P
         tomoDictList = self._initialize()
         launchIdList = []
         for tomoDict in tomoDictList:
-            launchId = self._insertFunctionStep(self.launchTargetGenerationStep, tomoDict, prerequisites=[])
+            launchId = self._insertFunctionStep(self.launchTargetGenerationStep, tomoDict, prerequisites=[], needsGPU=False)
             launchIdList.append(launchId)
-        self._insertFunctionStep(self.createOutputStep, tomoDictList, prerequisites=launchIdList)
+        self._insertFunctionStep(self.createOutputStep, tomoDictList, prerequisites=launchIdList, needsGPU=False)
 
     def _initialize(self):
         self.coord3DSet = self.inputCoordinates.get()
