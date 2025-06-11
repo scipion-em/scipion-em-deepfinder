@@ -73,6 +73,8 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
                        label="Choose GPU IDs",
                        help="GPU ID, normally it is 0.")
 
+        form.addParallelSection(threads=1, mpi=0)
+
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self.__initialize()
