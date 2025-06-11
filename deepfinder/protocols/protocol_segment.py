@@ -108,7 +108,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         deepfinder_args += ' -p ' + str(self.psize)
         deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
 
-        Plugin.runDeepFinder(self, 'segment', deepfinder_args)
+        Plugin.runDeepFinder(self, 'segment', deepfinder_args, useGPU=True)
 
     def createOutputStep(self, tsId: str):
         with self._lock:
