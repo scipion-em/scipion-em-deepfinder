@@ -126,6 +126,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             # Link to origin tomogram:
             tomoMask.setVolName(tomo.getFileName())
             tomoMaskSet.append(tomoMask)
+            self._store(tomoMaskSet)
 
     # --------------------------- INFO functions ----------------------
     def _summary(self):
