@@ -73,6 +73,8 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
                        label="Choose GPU IDs",
                        help="GPU ID, normally it is 0.")
 
+        form.addParallelSection(threads=1, mpi=0)
+
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self.__initialize()
@@ -106,7 +108,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         deepfinder_args += ' -p ' + str(self.psize)
         deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
 
-        Plugin.runDeepFinder(self, 'segment', deepfinder_args)
+        Plugin.runDeepFinder(self, 'segment', deepfinder_args, useGPU=True)
 
     def createOutputStep(self, tsId: str):
         with self._lock:
@@ -124,6 +126,7 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
             # Link to origin tomogram:
             tomoMask.setVolName(tomo.getFileName())
             tomoMaskSet.append(tomoMask)
+            self._store(tomoMaskSet)
 
     # --------------------------- INFO functions ----------------------
     def _summary(self):
