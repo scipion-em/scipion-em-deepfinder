@@ -9,7 +9,7 @@ from tomo.objects import SetOfTomograms, SetOfTomoMasks, TomoMask
 
 class DeepFinderViewer(pwviewer.Viewer):
     _label = 'Ortho-slice volume explorer'
-    _name = 'Open with DeepFinder'
+    _name = 'DeepFinder'
     _environments = [pwviewer.DESKTOP_TKINTER, Plugin.getEnviron()]
     _targets = [
         SetOfTomograms,
