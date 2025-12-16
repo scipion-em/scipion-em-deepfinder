@@ -1,3 +1,4 @@
+v3.2.2: menu renaming for the viewer to keep coherence with the rest of ScipionTomo plugins.
 v3.2.1: Fix bug in protocol "segment": now the GPU selection work as expected.
 v3.2.0:
  Users:
