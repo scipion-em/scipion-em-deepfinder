@@ -25,11 +25,12 @@
 # **************************************************************************
 import os
 import pwem
+from pyworkflow import TOMO
 from pyworkflow.utils import Environ
 from .constants import *
 
 
-__version__ = '3.2.2'
+__version__ = '3.2.3'
 _logo = "icon.png"
 _references = ['EMMANUEL2021']
 
@@ -38,6 +39,7 @@ class Plugin(pwem.Plugin):
     _homeVar = DF_HOME
     _pathVars = [DF_HOME]
     _url = 'https://deepfinder.readthedocs.io/en/latest/guide.html'
+    _processingField = [TOMO]
 
     @classmethod
     def _defineVariables(cls):
