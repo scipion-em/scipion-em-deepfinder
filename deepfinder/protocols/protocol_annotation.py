@@ -44,7 +44,120 @@ class DFAnnotateOutputs(Enum):
 
 
 class DeepFinderAnnotations(ProtTomoPicking):
-    """This protocol allows you to annotate macromolecules in your tomograms, using a visual tool."""
+    """
+    Allows interactive annotation of macromolecular structures within
+    tomographic volumes using a visual particle annotation environment.
+    The protocol is designed to support the generation of biologically
+    meaningful coordinate datasets that can later be used for particle
+    detection, segmentation, classification, or neural network training.
+
+    AI Generated:
+
+    DeepFinder Annotations (DeepFinderAnnotations) - User Manual
+        Overview
+
+        The DeepFinder Annotations protocol provides an interactive
+        environment for manually annotating macromolecular structures
+        inside cryo-electron tomography datasets. Its primary objective
+        is to enable users to identify and label particles directly within
+        tomograms so that reliable coordinate datasets can be generated
+        for downstream structural analysis and machine learning workflows.
+
+        In practical cryo-ET studies, manual annotation remains one of the
+        most important stages for preparing high-quality training and
+        validation datasets. Accurate annotations are essential for
+        supervised deep learning approaches because the quality of the
+        neural network predictions depends strongly on the consistency and
+        biological relevance of the annotated particles.
+
+        Interactive Annotation Workflow
+
+        The protocol operates through a visual annotation workflow in
+        which users inspect tomographic volumes and assign particle
+        coordinates to biologically meaningful classes. Each annotation
+        represents the estimated spatial position of a macromolecule or
+        structural feature inside the tomogram.
+
+        This approach is especially useful in heterogeneous cellular
+        environments where automated methods may struggle to distinguish
+        particles from crowded backgrounds, membranes, or neighboring
+        complexes. Human-guided annotation allows the user to incorporate
+        biological expertise directly into the dataset preparation process.
+
+        The protocol is suitable for both exploratory annotation campaigns
+        and carefully curated datasets intended for neural network
+        training. Users may progressively annotate tomograms over multiple
+        sessions while preserving the continuity of the workflow.
+
+        Biological Importance of Annotation Quality
+
+        From a biological perspective, annotation quality is one of the
+        main factors determining the success of downstream particle
+        detection and segmentation procedures. Incorrect particle
+        placement, inconsistent labeling, or ambiguous class definitions
+        can introduce bias into machine learning models and reduce their
+        ability to generalize to new tomograms.
+
+        Careful annotation is particularly important in datasets involving
+        structural heterogeneity, crowded intracellular environments, or
+        flexible molecular assemblies. In these situations, consistent
+        interpretation of particle identity across tomograms becomes
+        essential for obtaining biologically meaningful results.
+
+        Users are encouraged to establish clear annotation criteria before
+        beginning large-scale projects. Defining which structural features
+        belong to each class improves reproducibility and facilitates
+        collaboration between multiple annotators.
+
+        Coordinate Generation and Dataset Preparation
+
+        After annotation, the protocol produces a structured set of 3D
+        particle coordinates associated with the original tomograms. These
+        coordinates can subsequently be used for subtomogram extraction,
+        segmentation refinement, object clustering, or supervised neural
+        network training.
+
+        The generated coordinate datasets preserve the relationship
+        between particle annotations and their originating tomograms,
+        ensuring compatibility with downstream cryo-ET workflows. This is
+        particularly important when analyzing multiple experimental
+        conditions, time points, or cellular states.
+
+        The protocol also supports class-aware annotations, allowing
+        distinct particle categories to coexist within the same dataset.
+        This capability is especially valuable for studies involving
+        multiple macromolecular assemblies or structurally diverse
+        intracellular components.
+
+        Practical Recommendations
+
+        In routine practice, users should begin with a small subset of
+        representative tomograms to establish annotation consistency before
+        scaling to larger datasets. Reviewing annotations periodically is
+        recommended to minimize class drift and maintain biological
+        coherence across the project.
+
+        Annotation box size should be selected according to the expected
+        dimensions of the target particles. Choosing excessively small
+        regions may truncate structural features, while overly large
+        regions may include surrounding densities that complicate
+        downstream analysis.
+
+        For collaborative projects, maintaining a shared annotation guide
+        describing class definitions and particle-selection criteria can
+        significantly improve reproducibility and training quality.
+
+        Final Perspective
+
+        Manual annotation remains a foundational step in many cryo-electron
+        tomography workflows despite advances in automated detection
+        methods. The DeepFinder Annotations protocol provides a structured
+        environment for generating biologically reliable coordinate
+        datasets that support segmentation, classification, and deep
+        learning applications. Careful annotation strategy, consistent
+        labeling, and biologically informed particle selection are key
+        elements for producing robust and reproducible cryo-ET analyses.
+    """
 
     _label = 'annotate particles'
     _possibleOutputs = DFAnnotateOutputs
