@@ -33,6 +33,125 @@ import deepfinder.convert as cv
 
 
 class ProtDeepFinderBase(ProtTomoBase):
+    """
+    Provides shared utilities for integrating DeepFinder object annotations
+    with tomographic workflows in Scipion. The protocol acts as a bridge
+    between coordinate-based particle annotations and the object-list
+    representation required by DeepFinder-based training, segmentation,
+    and detection procedures.
+
+    AI Generated:
+
+    DeepFinder Base Utilities (ProtDeepFinderBase) - User Manual
+        Overview
+
+        The DeepFinder Base Utilities protocol provides a common framework
+        for transforming annotated particle coordinates into object-list
+        representations suitable for DeepFinder processing. Its primary
+        purpose is to ensure that tomographic annotations generated or
+        curated within Scipion can be consistently interpreted by
+        DeepFinder workflows for training, validation, segmentation, and
+        object detection.
+
+        In cryo-electron tomography projects, particle annotations often
+        originate from manual picking, template matching, neural-network
+        predictions, or previous segmentation analyses. These annotations
+        must be converted into a structured representation that preserves
+        spatial coordinates, tomogram identity, and class membership. This
+        protocol standardizes that conversion process so that downstream
+        DeepFinder protocols can operate reliably across heterogeneous
+        datasets.
+
+        Coordinate and Class Management
+
+        A central role of the protocol is the interpretation of annotated
+        3D coordinates together with their associated biological or
+        structural classes. Each coordinate is treated as an object located
+        within a tomogram and assigned to a specific category representing
+        a particle type, macromolecular complex, membrane feature, or other
+        structural target.
+
+        Correct class assignment is biologically important because neural
+        network training and segmentation quality strongly depend on the
+        consistency of labels across the dataset. The protocol ensures that
+        annotations remain compatible with DeepFinder conventions, including
+        the handling of background classes and label indexing. This helps
+        avoid ambiguities that could otherwise reduce classification
+        accuracy or compromise training stability.
+
+        Tomogram Association and Dataset Consistency
+
+        The protocol maintains the relationship between coordinates and
+        their originating tomograms. This association is essential in
+        tomography workflows because each volume may correspond to a
+        different biological condition, acquisition session, or experimental
+        preparation.
+
+        Preserving tomogram identity becomes especially important during
+        neural network training, where the ordering and grouping of
+        tomograms can influence validation strategies and reproducibility.
+        By organizing annotations according to their corresponding tomograms,
+        the protocol supports coherent dataset preparation for both
+        supervised learning and downstream quantitative analyses.
+
+        Training and Validation Workflows
+
+        The protocol is designed to facilitate machine learning workflows
+        that require separation between training and validation datasets.
+        Validation tomograms are commonly used to monitor generalization
+        performance and detect overfitting during neural network training.
+
+        In practical cryo-ET studies, maintaining a strict distinction
+        between training and validation data is essential for obtaining
+        biologically meaningful performance estimates. The protocol supports
+        this organization by preparing object annotations in a way that
+        preserves the intended dataset partitioning throughout the workflow.
+
+        Biological Interpretation
+
+        From a biological perspective, the quality of coordinate annotation
+        directly affects the interpretability of segmentation and detection
+        results. Poorly curated labels, inconsistent class definitions, or
+        inaccurate spatial annotations can propagate errors into the neural
+        network and ultimately reduce the reliability of downstream
+        structural interpretation.
+
+        For this reason, users should ensure that coordinate annotations are
+        biologically consistent, spatially accurate, and representative of
+        the structural diversity present in the dataset. Balanced annotation
+        across classes is also recommended whenever possible, particularly
+        in supervised learning applications involving rare particle types or
+        heterogeneous cellular environments.
+
+        Practical Recommendations
+
+        In routine workflows, it is advisable to verify that all tomograms
+        share compatible voxel sizes and coordinate conventions before
+        generating DeepFinder object lists. Consistency in annotation style
+        and class labeling significantly improves reproducibility and model
+        robustness.
+
+        When preparing datasets for training, users should carefully inspect
+        the distribution of annotations across tomograms and classes. Large
+        imbalances or mislabeled structures may bias the neural network and
+        reduce segmentation quality in biologically relevant regions.
+
+        Validation tomograms should ideally represent biological conditions
+        similar to those expected during inference while remaining distinct
+        from the training subset. This improves the reliability of
+        performance assessment and helps identify potential overfitting.
+
+        Final Perspective
+
+        Within DeepFinder-based cryo-electron tomography pipelines, the
+        conversion of coordinate annotations into structured object lists is
+        a foundational preparation step. Although conceptually simple, this
+        stage strongly influences the reliability of neural network
+        training, segmentation accuracy, and downstream biological
+        interpretation. Careful organization of annotations, coherent class
+        definitions, and accurate tomogram association are therefore
+        essential for robust and reproducible tomography analysis.
+    """
 
     TOMO = 'tomo'
     OBJL = 'objl'

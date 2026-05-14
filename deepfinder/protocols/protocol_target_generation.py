@@ -45,8 +45,130 @@ class GenTargetsOutputs(Enum):
 
 
 class DeepFinderGenerateTrainingTargetsSpheres(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
-    """ This protocol generates segmentation maps from annotations. These segmentation maps will be used as targets
-     to train DeepFinder """
+    """
+    Generates segmentation targets for DeepFinder training by converting annotated particle coordinates into
+    volumetric spherical labels. These generated targets are designed to provide supervised learning data for
+    deep learning based particle detection and segmentation in cryo-electron tomography workflows.
+
+    AI Generated:
+
+    Generate Training Targets Spheres (DeepFinderGenerateTrainingTargetsSpheres) - User Manual
+        Overview
+
+        The Generate Training Targets Spheres protocol creates segmentation maps that serve as training targets
+        for DeepFinder neural network models. In cryo-electron tomography, manually annotated coordinates are
+        often available as particle positions, but neural networks require dense volumetric labels during
+        supervised learning. This protocol bridges that gap by transforming coordinate annotations into
+        voxel-based target maps in which each particle is represented as a sphere with a biologically meaningful
+        radius.
+
+        The protocol is particularly useful during the preparation of training datasets for particle detection,
+        semantic segmentation, or object localization workflows. By producing consistent target volumes aligned
+        with the original tomograms, it enables the subsequent training of DeepFinder models capable of detecting
+        macromolecular complexes directly within tomographic reconstructions.
+
+        Inputs and Biological Context
+
+        The protocol requires a set of 3D coordinates associated with one or more tomograms. These coordinates
+        typically originate from manual annotation, template matching, subtomogram averaging workflows, or
+        curated particle picking procedures. Each coordinate set may represent one biological class, allowing
+        users to generate multiclass segmentation targets suitable for more advanced neural network training.
+
+        In biological practice, the quality of the annotations strongly influences the final model performance.
+        Coordinates should correspond to accurately localized particles, ideally centered on structurally
+        meaningful regions of the complexes of interest. Poorly centered or inconsistent annotations may
+        introduce uncertainty into the training process and reduce detection accuracy.
+
+        Sphere-Based Representation
+
+        The protocol models each annotated particle as a sphere within the target volume. The radius assigned
+        to each class defines the approximate spatial extent of the object and therefore determines how the
+        network interprets the biological structure during training.
+
+        Choosing an appropriate sphere radius is biologically important. Small radii may fail to represent the
+        full spatial occupancy of large complexes, making training unstable or incomplete. Excessively large
+        radii may artificially merge neighboring particles or blur class boundaries, particularly in crowded
+        cellular environments.
+
+        In practical cryo-ET applications, the radius should approximately reflect the expected particle size
+        after considering voxel size and tomogram binning. Users working with ribosomes, membrane complexes,
+        viral particles, or cytoskeletal assemblies should adapt the radius values according to the apparent
+        dimensions of the structures in the reconstructed tomograms.
+
+        Multiclass Segmentation Training
+
+        The protocol supports the generation of targets for multiple biological classes simultaneously. This is
+        especially relevant in cellular tomography projects where several molecular species coexist in the same
+        tomogram. Each class can be assigned an independent sphere radius, allowing the training targets to
+        better reflect structural diversity across particle populations.
+
+        From a biological perspective, multiclass training enables the neural network to distinguish between
+        distinct macromolecular assemblies rather than merely detecting generic particle-like densities. This
+        becomes valuable when studying heterogeneous cellular environments, organelle-associated complexes, or
+        mixed viral populations.
+
+        Tomogram Geometry and Spatial Consistency
+
+        The generated target maps preserve the geometry and dimensions of the original tomograms. This ensures
+        direct voxel correspondence between the tomographic data and the training labels, which is essential
+        for stable neural network learning.
+
+        Maintaining this spatial consistency is particularly important in cryo-electron tomography because the
+        network must learn contextual relationships between biological structures and surrounding densities.
+        Accurate correspondence between annotation and tomographic content improves localization precision and
+        reduces ambiguities during inference.
+
+        Parallel Processing and Large Datasets
+
+        The protocol is designed to process multiple tomograms efficiently, making it suitable for modern
+        cryo-ET projects involving large annotated datasets. This is especially important in deep learning
+        workflows, where robust model training often requires substantial biological variability across many
+        tomograms acquired under different imaging conditions.
+
+        In practice, larger and more diverse training datasets generally improve network generalization and
+        reduce overfitting. Including tomograms with varying contrast, crowding conditions, and structural
+        orientations often leads to more biologically robust detection models.
+
+        Biological Considerations for Radius Selection
+
+        Radius selection should be approached carefully because it directly affects the receptive representation
+        seen by the neural network. Structures that appear larger than the effective receptive field of the
+        network may not be learned reliably. When particles occupy very large spatial regions, downsampling
+        the tomograms prior to target generation may improve training stability and detection performance.
+
+        Biological users should also consider whether the chosen radius emphasizes the full particle envelope
+        or only the central core of the structure. In some applications, focusing on compact conserved regions
+        may improve detection robustness, especially for flexible assemblies or elongated complexes.
+
+        Outputs and Interpretation
+
+        After execution, the protocol produces a set of tomographic segmentation masks corresponding to the
+        generated training targets. Each output volume is associated with its original tomogram and can be used
+        directly in downstream DeepFinder training workflows.
+
+        These generated targets are not intended for biological interpretation by themselves. Instead, they act
+        as computational supervision maps that teach the neural network how particles are spatially distributed
+        within tomographic volumes.
+
+        Practical Recommendations
+
+        In routine cryo-ET deep learning workflows, users should begin with carefully curated coordinate sets
+        and biologically realistic sphere radii. Visual inspection of the generated targets is strongly
+        recommended before launching network training to ensure that particles are represented correctly and
+        that neighboring structures remain distinguishable.
+
+        For densely populated tomograms, slightly smaller radii may help reduce overlap between adjacent
+        particles. Conversely, for sparse datasets or low-resolution tomograms, moderately larger radii can
+        stabilize training by providing more robust target representations.
+
+        Final Perspective
+
+        The generation of accurate training targets is one of the most important steps in supervised deep
+        learning workflows for cryo-electron tomography. Well-designed target maps provide the foundation for
+        reliable neural network training and strongly influence the biological quality of subsequent particle
+        detection results. Careful selection of annotations, biologically meaningful sphere sizes, and dataset
+        diversity are essential for producing robust and interpretable DeepFinder models.
+    """
 
     _label = 'generate sphere targets'
     _possibleOutputs = GenTargetsOutputs

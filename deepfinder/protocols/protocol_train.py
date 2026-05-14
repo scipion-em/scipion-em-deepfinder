@@ -48,7 +48,179 @@ class DFTrainOutputs(Enum):
 
 
 class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
-    """ This protocol launches the training procedure """
+    """
+    Trains DeepFinder neural network models for semantic segmentation and
+    particle recognition in cryo-electron tomography datasets. The protocol
+    uses annotated tomograms, tomographic masks, and particle coordinates to
+    learn structural patterns that can later be used for automated object
+    detection and segmentation in volumetric cryo-EM data.
+
+    AI Generated:
+
+    DeepFinder Training (DeepFinderTrain) — User Manual
+        Overview
+
+        The DeepFinder Training protocol prepares and trains deep learning
+        models for the analysis of cryo-electron tomography data. Its main
+        objective is to teach a neural network to recognize biologically
+        meaningful structures inside tomograms by learning from annotated
+        examples. In practical cryo-ET workflows, this protocol is commonly
+        used to develop models capable of identifying macromolecular
+        complexes, organelles, membranes, viral components, or other cellular
+        features directly within three-dimensional volumes.
+
+        For biological users, this protocol represents a supervised learning
+        approach in which manually curated annotations guide the training
+        process. The resulting model can later be applied to new tomograms
+        for automated segmentation or particle localization, significantly
+        reducing manual workload and improving reproducibility across large
+        datasets.
+
+        Inputs and General Workflow
+
+        The protocol requires a set of tomographic masks together with the
+        associated tomograms and a corresponding set of three-dimensional
+        coordinates describing the positions of annotated objects. The masks
+        define the target regions that the neural network must learn to
+        recognize, while the coordinates provide object identity and spatial
+        localization information.
+
+        Training and validation datasets can be generated automatically or
+        defined explicitly by the user. In the automatic approach, the
+        protocol randomly partitions the available tomo masks into training
+        and validation subsets according to a user-defined validation
+        fraction. This strategy is generally sufficient for most biological
+        applications and simplifies workflow preparation.
+
+        Alternatively, users may provide an independent validation dataset.
+        This option is useful when datasets originate from different
+        experimental conditions or when strict separation between training
+        and validation samples is required to assess model generalization.
+
+        Patch-Based Learning
+
+        DeepFinder training operates on volumetric patches extracted from
+        tomograms rather than on complete tomographic volumes. Patch-based
+        learning reduces memory requirements and allows the neural network
+        to focus on local structural information. The patch size parameter
+        therefore plays an important biological and computational role.
+
+        Smaller patches require less GPU memory and may improve sensitivity
+        to local details, but they can limit the contextual information
+        available to the network. Larger patches provide broader structural
+        context and may improve recognition of large assemblies or extended
+        cellular features, although they demand more computational resources.
+
+        In biological practice, the patch size should generally be large
+        enough to contain the full target structure together with sufficient
+        surrounding context to distinguish it from neighboring densities.
+
+        Training Dynamics and Optimization
+
+        The protocol allows control over several key training parameters,
+        including batch size, number of epochs, and the number of steps
+        performed during training and validation. These parameters determine
+        how intensively the neural network learns from the dataset and how
+        frequently its performance is evaluated.
+
+        The batch size controls how many volumetric patches contribute to
+        each optimization step. Larger batch sizes may stabilize training
+        but require more GPU memory. Smaller batches are computationally
+        lighter but may produce noisier optimization behavior.
+
+        The number of epochs determines how many times the network revisits
+        the dataset during learning. In biological workflows, insufficient
+        training may lead to underfitting, where important structures are
+        not properly recognized, whereas excessive training may produce
+        overfitting, causing the model to memorize the training data rather
+        than generalize to unseen tomograms.
+
+        Validation and Model Generalization
+
+        Validation plays a critical role in assessing whether the network
+        is learning biologically meaningful patterns rather than memorizing
+        the training examples. During validation, the model is evaluated
+        using data not directly used for optimization. Monitoring validation
+        behavior helps identify overfitting and provides a more realistic
+        estimate of model performance on future datasets.
+
+        In cryo-electron tomography, variability between tomograms can be
+        substantial because of differences in imaging conditions, specimen
+        thickness, contrast, or sample preparation. For this reason,
+        maintaining a representative validation dataset is especially
+        important for ensuring robust biological interpretation.
+
+        Bootstrap Sampling and Robustness
+
+        The protocol supports bootstrap-based sampling strategies that help
+        compensate for unbalanced class distributions. In many biological
+        datasets, some structures may appear much more frequently than
+        others. Without corrective strategies, the neural network may become
+        biased toward dominant classes while poorly learning rare but
+        biologically important targets.
+
+        Bootstrap sampling increases the effective representation of less
+        frequent classes and improves the robustness of the resulting model.
+        This is particularly valuable in cellular tomography studies where
+        certain macromolecular assemblies may be sparsely distributed.
+
+        Random Shift Augmentation
+
+        To improve generalization, the protocol introduces random spatial
+        shifts during patch extraction. This augmentation strategy exposes
+        the network to slightly different object positions and prevents
+        excessive dependence on exact coordinate centering.
+
+        From a biological perspective, this improves robustness against
+        experimental variability and helps the model recognize structures
+        under realistic positional fluctuations. However, the selected shift
+        should remain small enough to ensure that target structures stay
+        fully contained within the extracted patches.
+
+        Outputs and Model Interpretation
+
+        After training, the protocol produces one or more neural network
+        weight files corresponding to different training stages or epochs.
+        These trained models can subsequently be used for automated
+        segmentation, particle localization, or inference workflows on
+        previously unseen tomograms.
+
+        The quality of the resulting models depends strongly on the quality
+        and consistency of the training annotations. High-quality biological
+        annotations are often more important than simply increasing dataset
+        size. Inconsistent labeling may confuse the neural network and
+        reduce prediction reliability.
+
+        Practical Recommendations
+
+        For most biological applications, it is advisable to begin with a
+        moderate validation fraction and default training parameters. Visual
+        inspection of prediction quality on independent tomograms is often
+        the best indicator of whether the model has learned meaningful
+        structural features.
+
+        Users should ensure that training datasets capture the expected
+        diversity of biological states, orientations, and imaging conditions.
+        Networks trained on overly homogeneous data may fail when applied to
+        more variable experimental datasets.
+
+        When GPU memory is limited, reducing patch size or batch size is
+        usually preferable to reducing dataset diversity. Conversely, when
+        sufficient computational resources are available, larger patches and
+        longer training schedules may improve segmentation quality for
+        structurally complex tomograms.
+
+        Final Perspective
+
+        Deep learning approaches such as DeepFinder are transforming
+        cryo-electron tomography by enabling scalable and automated analysis
+        of complex volumetric datasets. Successful application of these
+        methods depends not only on computational settings but also on the
+        biological quality of annotations, careful dataset preparation, and
+        thoughtful validation strategies. Well-trained models can greatly
+        accelerate structural interpretation and support large-scale studies
+        of molecular organization inside cells.
+    """
 
     _label = 'train'
     _possibleOutputs = DFTrainOutputs
