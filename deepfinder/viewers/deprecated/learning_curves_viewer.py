@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # **************************************************************************
 # *
-# * Authors: Emmanuel Moebel (emmanuel.moebel@inria.fr)
+# * Authors:     Scipion Team
 # *
-# * Inria - Centre de Rennes Bretagne Atlantique, France
+# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -24,12 +23,29 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from .protocol_base import ProtDeepFinderBase
-from deepfinder.protocols.deprecated.protocol_annotation import DeepFinderAnnotations
-from .protocol_target_generation import DeepFinderGenerateTrainingTargetsSpheres
-from .protocol_train import DeepFinderTrain
-from .protocol_segment import DeepFinderSegment
-from .protocol_cluster import DeepFinderCluster
-from .protocol_load_training_model import ProtDeepFinderLoadTrainingModel
-from .protocol_import_coordinates import ImportCoordinates3D
+from matplotlib import pyplot as plt
+import pyworkflow.viewer as pwviewer
+from pwem.viewers import ImageView
+from deepfinder.protocols.protocol_train import DeepFinderTrain
 
+
+class DeepFinderLCurvesViewer(pwviewer.Viewer):
+    _label = 'Learning Curves Viewer'
+    _targets = [DeepFinderTrain]
+
+    def _visualize(self, obj, **kwargs):
+        view = DFImageView(self.protocol._getExtraPath('net_train_history_plot.png'))
+        view._tkParent = self.getTkRoot()
+        return [view]
+
+
+class DFImageView(ImageView):
+
+    def show(self):
+        image_file = self.getImagePath()
+        plt.figure(num='DeepFinder Learning Curves')
+        image = plt.imread(image_file)
+        plt.imshow(image)
+        plt.axis('off')
+        plt.tight_layout()  # Decrease the padding
+        plt.show()

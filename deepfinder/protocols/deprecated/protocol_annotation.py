@@ -132,6 +132,12 @@ class DeepFinderAnnotations(ProtTomoPicking):
         self._defineSourceRelation(setTomograms, coord3DSet)
 
     # --------------------------- DEFINE info functions ----------------------
+    @classmethod
+    def isDisabled(cls):
+        """ Return True if this Protocol is disabled.
+        Disabled protocols will not be offered in the available protocols."""
+        return True
+
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []

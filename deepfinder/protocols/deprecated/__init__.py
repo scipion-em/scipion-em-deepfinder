@@ -3,7 +3,7 @@
 # *
 # * Authors:     Scipion Team
 # *
-# * your institution
+# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -21,31 +21,6 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'you@yourinstitution.email'
+# *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from os.path import join, isfile, abspath
-
-from deepfinder.convert import objl_read
-from pyworkflow.utils import removeBaseExt
-from tomo.viewers.views_tkinter_tree import TomogramsTreeProvider
-
-
-class ParticleAnnotatorProvider(TomogramsTreeProvider):
-
-    def getObjectInfo(self, inTomo):
-        tomogramName = removeBaseExt(inTomo.getFileName())
-        filePath = join(self._path, "objl_annot_" + tomogramName + ".xml")
-
-        if isfile(filePath):
-            nCoords = len(objl_read(abspath(filePath)))
-            return {'key': tomogramName, 'parent': None,
-                    'text': tomogramName, 'values': (nCoords, 'DONE'),
-                    'tags': "done"}
-        else:
-            return {'key': tomogramName, 'parent': None,
-                    'text': tomogramName, 'values': (0, 'PENDING'),
-                    'tags': "pending"}
-
-    def getColumns(self):
-        return [('Tomograms', 300), ("# coords", 100), ('status', 150)]
