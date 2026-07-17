@@ -41,6 +41,7 @@ from tomo.protocols import ProtTomoBase
 from tomo.objects import SetOfTomoMasks
 
 PSIZE_CHOICES = ['40', '44', '48', '52', '56', '60', '64']
+ARCHITECTURE_CHOICES = ['unet', 'resnet']
 
 
 class DFTrainOutputs(Enum):
@@ -145,6 +146,55 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                       help='(in voxels) Applied to positions in object list when sampling patches. Enhances network '
                            'robustness. Make sure that objects are still contained in patches when applying shift.')
 
+        form.addParam('useAdvancedParams', params.BooleanParam,
+                      default=False,
+                      label='Use advanced parameters?',
+                      help='If set to False (default), none of the advanced parameters below (architecture, '
+                           'domain randomization, additional augmentations and fine tuning) will be used or '
+                           'written to the training parameters file.')
+
+        form.addParam('architecture', params.EnumParam,
+                      condition='useAdvancedParams',
+                      display=params.EnumParam.DISPLAY_COMBO,
+                      default=0,  # 'unet'
+                      choices=ARCHITECTURE_CHOICES,
+                      label='Architecture',
+                      help='Network architecture used for training.')
+
+        form.addParam('flagDomainRandomization', params.BooleanParam,
+                      condition='useAdvancedParams',
+                      default=False,
+                      label='Domain randomization',
+                      help='Enable domain randomization data augmentation. This option is only to be used with Template Learning v2.')
+
+        form.addParam('flagAdditionalAugmentations', params.BooleanParam,
+                      condition='useAdvancedParams',
+                      default=False,
+                      label='Additional augmentations',
+                      help='Enable additional data augmentations.')
+
+        form.addParam('fineTune', params.BooleanParam,
+                      condition='useAdvancedParams',
+                      default=False,
+                      label='Fine tune',
+                      help='If True, the network is initialized with pretrained weights and only the last '
+                           'layers are trained, freezing the rest.')
+
+        form.addParam('pathWeightsPretrained', PointerParam,
+                      condition='useAdvancedParams and fineTune',
+                      pointerClass='DeepFinderNet',
+                      allowsNull=True,
+                      label='Pretrained weights',
+                      help='Select the pretrained network model whose weights will be used as starting point '
+                           'for fine tuning.')
+
+        form.addParam('nUnfrozenLayers', params.IntParam,
+                      condition='useAdvancedParams and fineTune',
+                      default=18,
+                      label='Number of unfrozen layers',
+                      help='Number of layers (counting from the output) that remain trainable during fine '
+                           'tuning; the rest of the network is frozen.')
+
         form.addHidden(GPU_LIST, params.StringParam, default='0',
                        expertLevel=LEVEL_ADVANCED,
                        label="Choose GPU IDs",
@@ -197,6 +247,16 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         params.flag_direct_read = False  # in current deepfinder version only works with tomos/targets stored as h5
         params.flag_bootstrap = self.bootstrap.get()
         params.rnd_shift = self.rndShift.get()
+
+        params.flag_advanced_params = self.useAdvancedParams.get()
+        if params.flag_advanced_params:
+            params.architecture = ARCHITECTURE_CHOICES[self.architecture.get()]
+            params.flag_domain_randomization = self.flagDomainRandomization.get()
+            params.flag_additional_augmentations = self.flagAdditionalAugmentations.get()
+            params.flag_fine_tune = self.fineTune.get()
+            if params.flag_fine_tune:
+                params.path_weights_pretrained = abspath(self.pathWeightsPretrained.get().getPath())
+                params.n_unfrozen_layers = self.nUnfrozenLayers.get()
 
         fname_params = abspath(self._getExtraPath('params_train.xml'))
         params.write(fname_params)
@@ -307,6 +367,9 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                             'be at least 2.')
         if self.useSpecificValidation.get() and not valTomoMasks:
             errorMsg.append('Please provide a validation set.')
+
+        if self.useAdvancedParams.get() and self.fineTune.get() and not self.pathWeightsPretrained.get():
+            errorMsg.append('Please provide the pretrained weights to fine tune from.')
 
         return errorMsg
 

@@ -203,6 +203,16 @@ class ParamsTrain:
         self.flag_bootstrap = bool()
         self.rnd_shift = int()
 
+        # Advanced (optional) parameters. Only written to the xml file when flag_advanced_params is True.
+        self.flag_advanced_params = False
+        self.architecture = str()  # 'unet' or 'resnet'
+        self.flag_domain_randomization = bool()
+        self.flag_additional_augmentations = bool()
+        # Fine tuning (optional). Only written to the xml file when flag_fine_tune is True.
+        self.flag_fine_tune = False
+        self.path_weights_pretrained = str()
+        self.n_unfrozen_layers = int()
+
     def write(self, filename):
         root = ET.Element('paramsTrain')
 
@@ -251,6 +261,23 @@ class ParamsTrain:
 
         p = ET.SubElement(root, 'random_shift')
         p.set('shift', str(self.rnd_shift))
+
+        if self.flag_advanced_params:
+            p = ET.SubElement(root, 'architecture')
+            p.set('name', str(self.architecture))
+
+            p = ET.SubElement(root, 'flag_domain_randomization')
+            p.set('flag', str(self.flag_domain_randomization))
+
+            p = ET.SubElement(root, 'flag_additional_augmentations')
+            p.set('flag', str(self.flag_additional_augmentations))
+
+            if self.flag_fine_tune:
+                p = ET.SubElement(root, 'path_weights_pretrained')
+                p.set('path', str(self.path_weights_pretrained))
+
+                p = ET.SubElement(root, 'n_unfrozen_layers')
+                p.set('n', str(self.n_unfrozen_layers))
 
         tree = ET.ElementTree(root)
         tree.write(filename)
