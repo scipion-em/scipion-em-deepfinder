@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 class DFSegmentOutputs(Enum):
     segmentations = SetOfTomoMasks
 
+ARCHITECTURE_CHOICES = ['unet', 'resnet']
 
 class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol segments tomograms, using a trained neural network."""
@@ -72,6 +73,13 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
                        expertLevel=LEVEL_ADVANCED,
                        label="Choose GPU IDs",
                        help="GPU ID, normally it is 0.")
+        
+        form.addParam('architecture', params.EnumParam,
+                      display=params.EnumParam.DISPLAY_COMBO,
+                      default=0,  # 'unet'
+                      choices=ARCHITECTURE_CHOICES,
+                      label='Architecture',
+                      help='Network architecture')
 
         form.addParallelSection(threads=1, mpi=0)
 
@@ -107,6 +115,9 @@ class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
         deepfinder_args += ' -c ' + str(self.weights.get().getNbOfClasses())
         deepfinder_args += ' -p ' + str(self.psize)
         deepfinder_args += ' -o ' + abspath(self._getExtraPath(outputFileName))
+        # to allow backword compatability, --model is only passed if not 'unet'
+        if ARCHITECTURE_CHOICES[self.architecture.get()] != 'unet':
+                deepfinder_args += ' --model ' + ARCHITECTURE_CHOICES[self.architecture.get()]
 
         Plugin.runDeepFinder(self, 'segment', deepfinder_args, useGPU=True)
 
