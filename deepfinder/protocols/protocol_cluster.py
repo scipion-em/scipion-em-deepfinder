@@ -46,6 +46,11 @@ class DFClusterOutputs(Enum):
     coordinates = SetOfCoordinates3D
 
 
+METHOD_MEANSHIFT = 0
+METHOD_CC = 1
+METHOD_CHOICES = ['MeanShift clustering', 'Connected component analysis']
+
+
 class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol analyses segmentation maps and outputs particle coordinates and class."""
 
@@ -67,11 +72,38 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
                       label="Segmentation maps",
                       important=True,
                       help='Please select the segmentation maps you would like to analyze.')
+        form.addParam('method', params.EnumParam,
+                      display=params.EnumParam.DISPLAY_COMBO,
+                      default=METHOD_MEANSHIFT,
+                      choices=METHOD_CHOICES,
+                      label='Centroid extraction method',
+                      important=True,
+                      help='MeanShift clustering: identifies objects by clustering the segmented voxels, using '
+                           'the clustering radius as bandwidth. Recommended when objects of the same class may '
+                           'touch or overlap in the segmentation map.\n'
+                           'Connected component analysis: identifies objects as the connected voxel groups '
+                           '(26-connectivity) of each class and reports their centroid. Faster than MeanShift, '
+                           'but will merge objects of the same class that touch each other in the segmentation.')
         form.addParam('cradius', params.IntParam,
                       default=5,
                       label='Clustering radius',
                       important=True,
-                      help='Should correspond to average radius of target objects (in voxels)')
+                      condition=f'method=={METHOD_MEANSHIFT}',
+                      help='Should correspond to average radius of target objects (in voxels). Used as the '
+                           'bandwidth parameter of the MeanShift algorithm, and also determines the output box size.')
+        form.addParam('boxRadius', params.IntParam,
+                      default=5,
+                      label='Object radius (for box size)',
+                      important=True,
+                      condition=f'method=={METHOD_CC}',
+                      help='Average radius of target objects (in voxels), only used to set the box size of the '
+                           'output coordinates.')
+        form.addParam('sizeThr', params.IntParam,
+                      default=1,
+                      label='Minimum object size (voxels)',
+                      condition=f'method=={METHOD_CC}',
+                      help='Connected components smaller than this size (in voxels) are considered noise/false '
+                           'positives and discarded.')
         form.addParallelSection(threads=4, mpi=1)
 
     # --------------------------- INSERT steps functions ----------------------
@@ -104,7 +136,12 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
 
         # Launch DeepFinder executable:
         deepfinder_args = '-l ' + segm.getFileName()
-        deepfinder_args += ' -r ' + str(self.cradius.get())
+        if self.method.get() == METHOD_MEANSHIFT:
+            deepfinder_args += ' -m meanshift'
+            deepfinder_args += ' -r ' + str(self.cradius.get())
+        else:
+            deepfinder_args += ' -m cc'
+            deepfinder_args += ' -t ' + str(self.sizeThr.get())
         deepfinder_args += ' -o ' + fname_objl
 
         Plugin.runDeepFinder(self, 'cluster', deepfinder_args)
@@ -175,7 +212,8 @@ class DeepFinderCluster(ProtTomoPicking, ProtDeepFinderBase):
     # --------------------------- UTILS functions -----------------------------
     def createOutputSet(self) -> SetOfCoordinates3D:
         outCoords = getattr(self, self._possibleOutputs.coordinates.name, None)
-        boxSize = 2 * self.cradius.get()
+        radius = self.cradius.get() if self.method.get() == METHOD_MEANSHIFT else self.boxRadius.get()
+        boxSize = 2 * radius
         if outCoords:
             outCoords.enableAppend()
         else:
