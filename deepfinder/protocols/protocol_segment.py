@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class DFSegmentOutputs(Enum):
     segmentations = SetOfTomoMasks
 
-ARCHITECTURE_CHOICES = ['unet', 'resnet']
+ARCHITECTURE_CHOICES = ['unet', 'resunet']
 
 class DeepFinderSegment(ProtTomoPicking, ProtDeepFinderBase):
     """This protocol segments tomograms, using a trained neural network."""

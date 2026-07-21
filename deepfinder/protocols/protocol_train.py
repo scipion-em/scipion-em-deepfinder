@@ -41,7 +41,11 @@ from tomo.protocols import ProtTomoBase
 from tomo.objects import SetOfTomoMasks
 
 PSIZE_CHOICES = ['40', '44', '48', '52', '56', '60', '64']
-ARCHITECTURE_CHOICES = ['unet', 'resnet']
+ARCHITECTURE_CHOICES = ['unet', 'resunet']
+# GUI labels for the Volta phase plate mode; '' (Default) leaves SDR.config's own value untouched.
+PHASE_PLATE_CHOICES = ['Default (from SDR.config)', 'True (VPP engaged)', 'False (no VPP)',
+                       'Switching (random VPP true/false per patch)']
+PHASE_PLATE_VALUES = ['', 'true', 'false', 'switching']
 
 
 class DFTrainOutputs(Enum):
@@ -167,6 +171,19 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
                       label='Domain randomization',
                       help='Enable domain randomization data augmentation. This option is only to be used with Template Learning v2.')
 
+        form.addParam('usePhasePlate', params.EnumParam,
+                      condition='useAdvancedParams and flagDomainRandomization',
+                      display=params.EnumParam.DISPLAY_COMBO,
+                      default=0,  # 'Default (from SDR.config)'
+                      choices=PHASE_PLATE_CHOICES,
+                      label='Volta phase plate (VPP) mode',
+                      help='Overrides the "use_phase_plate" entry of SDR.config for this run only '
+                           '(the shared SDR.config file on disk is left untouched). "Default" keeps '
+                           'whatever SDR.config already specifies. "True"/"False" fix the VPP on/off '
+                           'for every simulated patch. "Switching" randomly resolves, independently '
+                           'for each patch, to a full "True" draw or a full "False" draw (i.e. it '
+                           'switches between the two rather than sampling an intermediate value).')
+
         form.addParam('flagAdditionalAugmentations', params.BooleanParam,
                       condition='useAdvancedParams',
                       default=False,
@@ -252,6 +269,8 @@ class DeepFinderTrain(EMProtocol, ProtDeepFinderBase, ProtTomoBase):
         if params.flag_advanced_params:
             params.architecture = ARCHITECTURE_CHOICES[self.architecture.get()]
             params.flag_domain_randomization = self.flagDomainRandomization.get()
+            if params.flag_domain_randomization:
+                params.use_phase_plate = PHASE_PLATE_VALUES[self.usePhasePlate.get()]
             params.flag_additional_augmentations = self.flagAdditionalAugmentations.get()
             params.flag_fine_tune = self.fineTune.get()
             if params.flag_fine_tune:
