@@ -31,7 +31,7 @@ import pwem.protocols
 from tomo.protocols.protocol_import_tomograms import OUTPUT_NAME
 from . import DataSet
 from ..protocols import ImportCoordinates3D, DeepFinderGenerateTrainingTargetsSpheres, DeepFinderTrain, \
-    ProtDeepFinderLoadTrainingModel, DeepFinderSegment, DeepFinderCluster
+    ProtDeepFinderLoadTrainingModel, DeepFinderSegment, DeepFinderCluster, DeepFinderSWA
 
 
 class TestDeepFinderImportCoordinates(BaseTest):
@@ -273,6 +273,48 @@ class TestDeepFinderSegment(BaseTest):
         self.assertTrue(output, "There was a problem with segmentation output (SetOfTomoMasks)")
 
         return output
+
+
+class TestDeepFinderSWA(BaseTest):
+    """This class check if the protocol for Stochastic Weight Averaging of network models works properly."""
+
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+        cls.dataset = DataSet.getDataSet('deepfinder')
+
+    def _runDeepFinderSWA(self):
+        # Get 2 model weights (same file used twice, just to exercise the averaging):
+        protImportModel1 = self.newProtocol(ProtDeepFinderLoadTrainingModel,
+                                            netWeightsFile=self.dataset.getPath() + '/net_weights_SHREC2019_4B4T.h5',
+                                            numClasses=1)
+        self.launchProtocol(protImportModel1)
+        weights1 = getattr(protImportModel1, protImportModel1._possibleOutputs.netWeights.name, None)
+        self.assertIsNotNone(weights1, "There was a problem with import model output")
+
+        protImportModel2 = self.newProtocol(ProtDeepFinderLoadTrainingModel,
+                                            netWeightsFile=self.dataset.getPath() + '/net_weights_SHREC2019_4B4T.h5',
+                                            numClasses=1)
+        self.launchProtocol(protImportModel2)
+        weights2 = getattr(protImportModel2, protImportModel2._possibleOutputs.netWeights.name, None)
+        self.assertIsNotNone(weights2, "There was a problem with import model output")
+
+        # Define and launch test protocol:
+        protSWA = self.newProtocol(DeepFinderSWA,
+                                   inputWeights=[weights1, weights2],
+                                   architecture=0,  # 'unet'
+                                   )
+        self.launchProtocol(protSWA)
+
+        return protSWA
+
+    def test_swa(self):
+        protSWA = self._runDeepFinderSWA()
+        output = getattr(protSWA, protSWA._possibleOutputs.netWeights.name, None)
+
+        self.assertTrue(output, "There was a problem with SWA output (averaged net model weights)")
+        self.assertEqual(output.getNbOfClasses(), 2)
+        self.assertTrue(exists(output.getPath()))
 
 
 class TestDeepFinderCluster(BaseTest):
